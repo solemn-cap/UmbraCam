@@ -36,6 +36,19 @@ class ScreenSessionJournalTest {
         File(root, "$legacy.properties").writeText("version=screen-1\nid=$legacy\nstate=PREPARING\ncount=0\n")
         assertEquals(setOf(CaptureSource.SCREEN), journal.read(File(root, "$legacy.properties"))!!.request.requiredSources)
     }
+
+    @Test fun audioSourceJournalRoundTripsAndKeepsScreenTwoReadable() {
+        val root = temporary.newFolder(); val journal = ScreenSessionJournal(root)
+        val sources = setOf(CaptureSource.SCREEN, CaptureSource.MICROPHONE, CaptureSource.INTERNAL_AUDIO)
+        val audio = RecordingSession(UUID.randomUUID().toString(), RecordingRequest(sources), RecordingState.RECORDING,
+            sources, listOf(SavedSegment("${UUID.randomUUID()}.mp4", 900)))
+        journal.write(audio)
+        assertEquals(audio, journal.read(File(root, "${audio.id}.properties")))
+
+        val old = UUID.randomUUID().toString()
+        File(root, "$old.properties").writeText("version=screen-2\nid=$old\nsources=SCREEN,FRONT_CAMERA\nstate=RECORDING\ncount=0\n")
+        assertEquals(setOf(CaptureSource.SCREEN, CaptureSource.FRONT_CAMERA), journal.read(File(root, "$old.properties"))?.request?.requiredSources)
+    }
     @Test fun reconciliationQuarantinesPendingAndNeverRestoresRecording() {
         val root = temporary.newFolder(); val files = store(root); val pending = files.reserve().apply { writeText("unverified") }
         val journal = ScreenSessionJournal(File(root, "sessions")); journal.write(session(RecordingState.RECORDING))

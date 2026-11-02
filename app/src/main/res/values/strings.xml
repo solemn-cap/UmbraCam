@@ -157,7 +157,7 @@
     <string name="camera_split_detail">Rear on top; front below.</string>
     <string name="screen_title">Screen recorder</string>
     <string name="screen_intro">Record your whole screen. Android will ask what you want to share each time you start.</string>
-    <string name="screen_limits">Videos are silent and fit within 1280 pixels on the longer edge. Protected content may appear blank. Rotating or resizing the display stops this recording; start again with fresh consent.</string>
+    <string name="screen_limits">Video fits within 1280 pixels on the longer edge. Protected content may appear blank. Apps can block playback-audio capture. Rotating or resizing the display stops this recording; start again with fresh consent.</string>
     <string name="screen_notification">Recording screen</string>
     <string name="screen_notification_detail">Silent screen recording. Tap to open controls.</string>
     <string name="screen_awaiting">Waiting for system consent…</string>
@@ -177,7 +177,11 @@
     <string name="reaction_camera_failed">The front camera stopped or could not open. Any valid segment is preserved. Check camera access or switch to Screen only, then start again.</string>
     <string name="reaction_microphone_enable">Add microphone commentary</string>
     <string name="reaction_microphone_unavailable">Microphone capture is not available in this screen recorder yet. Videos remain silent.</string>
-    <string name="reaction_internal_audio_unavailable">Internal audio is not captured. Android and individual apps may restrict screen audio.</string>
+    <string name="reaction_internal_audio_unavailable">Playback audio capture is not supported on this Android version.</string>
+    <string name="reaction_internal_audio_enable">Capture app playback audio</string>
+    <string name="reaction_internal_audio_limits">Android and each app control playback capture. Protected or opted-out apps may produce silence. Grant audio permission to enable this option.</string>
+    <string name="reaction_audio_separate_tracks">Microphone and app audio are saved as separate synchronized tracks.</string>
+    <string name="reaction_audio_capture_failed">An audio source stopped. Capture was stopped and any valid portion was saved.</string>
     <string name="screen_cancelled">Screen recording was cancelled. Start again when you are ready.</string>
     <string name="screen_camera_busy">Finish the current camera recording or file operation before starting the screen recorder.</string>
     <string name="screen_unsupported">This device or selected source combination is not supported by the current capture path. Choose Screen only or retry with a supported output format.</string>

@@ -21,7 +21,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.UmbraCam">
         <service android:name=".camera.RecordingService" android:exported="false" android:stopWithTask="false" android:foregroundServiceType="camera|microphone" />
-        <service android:name=".screen.ScreenRecordingService" android:exported="false" android:stopWithTask="false" android:foregroundServiceType="mediaProjection|camera" />
+        <service android:name=".screen.ScreenRecordingService" android:exported="false" android:stopWithTask="false" android:foregroundServiceType="mediaProjection|camera|microphone" />
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

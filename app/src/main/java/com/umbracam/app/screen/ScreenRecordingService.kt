@@ -35,7 +35,12 @@ class ScreenRecordingService : Service() {
             if (owned == null) stopSelf(startId)
             return START_NOT_STICKY
         }
-        if (intent?.action != START || attempt == null || controller.pendingAttempt() != attempt) {
+        if (intent?.action != START || attempt == null) {
+            if (owned == null) stopSelf(startId)
+            return START_NOT_STICKY
+        }
+        if (controller.pendingAttempt() != attempt) {
+            controller.serviceFailed(attempt)
             if (owned == null) stopSelf(startId)
             return START_NOT_STICKY
         }
@@ -52,7 +57,8 @@ class ScreenRecordingService : Service() {
     }
     private fun promote(attempt: String) {
         val types = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or
-            if (controller.cameraRequired(attempt)) ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA else 0
+            (if (controller.cameraRequired(attempt)) ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA else 0) or
+            (if (controller.microphoneRequired(attempt)) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0)
         startForeground(ID, notification(attempt), types)
     }
     private fun notification(attempt: String): Notification {

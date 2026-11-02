@@ -7,8 +7,7 @@ class ScreenCaptureAttempt internal constructor(val id: String)
 /** Serialized by the Android owner. Every new attempt needs a distinct system consent result. */
 class ScreenSessionCoordinator(private val clockMillis: () -> Long) {
     private val transitions = RecordingSessionTransitions { request ->
-        require(request.requiredSources == setOf(CaptureSource.SCREEN) ||
-            request.requiredSources == setOf(CaptureSource.SCREEN, CaptureSource.FRONT_CAMERA))
+        require(isSupportedScreenSources(request.requiredSources))
     }
     val session = transitions.session
     private var pending: ScreenConsentRequest? = null
@@ -91,8 +90,7 @@ class ScreenSessionCoordinator(private val clockMillis: () -> Long) {
     fun recordingDeleted(storageId: String) = transitions.recordingDeleted(storageId)
     fun restoreInterrupted(previous: RecordingSession) {
         check(!isBusy)
-        require(previous.request.requiredSources == setOf(CaptureSource.SCREEN) ||
-            previous.request.requiredSources == setOf(CaptureSource.SCREEN, CaptureSource.FRONT_CAMERA))
+        require(isSupportedScreenSources(previous.request.requiredSources))
         pending = null; attempt = null; projectionReady = false; publicationClaimed = false
         requiredSources = previous.request.requiredSources.toSet()
         transitions.restoreInterrupted(previous)
@@ -107,5 +105,12 @@ class ScreenSessionCoordinator(private val clockMillis: () -> Long) {
         }
         return true
     }
-    companion object { const val ACQUISITION_MILLIS = 10_000L }
+
+    private fun isSupportedScreenSources(sources: Set<CaptureSource>): Boolean =
+        CaptureSource.SCREEN in sources && sources.all { it in SUPPORTED_SOURCES }
+
+    companion object {
+        const val ACQUISITION_MILLIS = 10_000L
+        private val SUPPORTED_SOURCES = setOf(CaptureSource.SCREEN, CaptureSource.FRONT_CAMERA, CaptureSource.MICROPHONE, CaptureSource.INTERNAL_AUDIO)
+    }
 }

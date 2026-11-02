@@ -7,6 +7,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
+import android.media.MediaExtractor
+import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionConfig
@@ -30,7 +32,7 @@ import java.io.File
 import java.util.UUID
 import java.util.concurrent.Executors
 
-enum class ScreenIssue { CONSENT, CAMERA_PERMISSION, CAMERA_BUSY, FRONT_CAMERA, MICROPHONE_PERMISSION, NOTIFICATIONS, UNSUPPORTED, STORAGE, CAPTURE, REVOKED, SIZE_CHANGED, FINALIZATION, PREVIOUS, METADATA, THERMAL }
+enum class ScreenIssue { CONSENT, CAMERA_PERMISSION, CAMERA_BUSY, FRONT_CAMERA, MICROPHONE_PERMISSION, AUDIO_CAPTURE, NOTIFICATIONS, UNSUPPORTED, STORAGE, CAPTURE, REVOKED, SIZE_CHANGED, FINALIZATION, PREVIOUS, METADATA, THERMAL }
 data class ScreenStudioState(val initializing: Boolean = true, val awaitingConsent: Boolean = false,
     val serviceRunning: Boolean = false, val elapsedMillis: Long = 0, val issue: ScreenIssue? = null)
 
@@ -69,6 +71,7 @@ class ScreenRecordingController(private val app: Application) {
     private var stopping = false
     private var recordingStartedAt = 0L
     private var lastCameraFrameAt = 0L
+    private val sampledSources = mutableSetOf<CaptureSource>()
     private var tick: Job? = null
     private var deadline: Job? = null
     private val displayManager = app.getSystemService(DisplayManager::class.java)
@@ -104,7 +107,7 @@ class ScreenRecordingController(private val app: Application) {
         if (recordingRequest.mode == ReactionMode.SCREEN_AND_FRONT_CAMERA && selectedCamera == null) {
             mutableUi.update { it.copy(issue = ScreenIssue.FRONT_CAMERA) }; return null
         }
-        if (recordingRequest.microphone && app.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+        if (requiresAudioPermission(recordingRequest) && app.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             mutableUi.update { it.copy(issue = ScreenIssue.MICROPHONE_PERMISSION) }; return null
         }
         if (!CaptureThermalPolicy.canStart(thermals.refresh())) {
@@ -160,7 +163,7 @@ class ScreenRecordingController(private val app: Application) {
             (selectedCamera == null || runCatching { FrontCameraConfigurationReader.read(app)?.id }.getOrNull() != selectedCamera.id)) {
             policy.cancelConsent(request); mutableUi.update { it.copy(issue = ScreenIssue.FRONT_CAMERA) }; return
         }
-        if (captureRequest.microphone && app.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+        if (requiresAudioPermission(captureRequest) && app.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             policy.cancelConsent(request); mutableUi.update { it.copy(issue = ScreenIssue.MICROPHONE_PERMISSION) }; return
         }
         if (!CaptureThermalPolicy.canStart(thermals.refresh())) {
@@ -173,6 +176,7 @@ class ScreenRecordingController(private val app: Application) {
         token = attempt; grant = data; activeRequest = captureRequest; activeCamera = selectedCamera; stopping = false
         recordingStartedAt = 0L
         lastCameraFrameAt = 0L
+        sampledSources.clear()
         try { app.startForegroundService(Intent(app, ScreenRecordingService::class.java)
             .setAction(ScreenRecordingService.START).putExtra(ScreenRecordingService.ATTEMPT, attempt.id)) }
         catch (_: Exception) { grant = null; activeRequest = null; activeCamera = null; policy.failed(attempt, RecordingErrorCode.PERMISSION_DENIED)
@@ -181,6 +185,7 @@ class ScreenRecordingController(private val app: Application) {
 
     fun cancelConsent() { consentResult(Activity.RESULT_CANCELED, null, false) }
     fun cameraPermissionDenied() { mutableUi.update { it.copy(issue = ScreenIssue.CAMERA_PERMISSION) } }
+    fun microphonePermissionDenied() { mutableUi.update { it.copy(issue = ScreenIssue.MICROPHONE_PERMISSION) } }
     fun notificationDenied() { mutableUi.update { it.copy(issue = ScreenIssue.NOTIFICATIONS) } }
     @Suppress("DEPRECATION")
     private fun readBounds(): Pair<Int, Int> {
@@ -196,15 +201,18 @@ class ScreenRecordingController(private val app: Application) {
     fun pendingAttempt(): String? = token?.id?.takeIf {
         grant != null && session.value?.state in SingleCameraSessionCoordinator.busyStates &&
             activeRequest?.validate(ReactionCapabilityDetector(app).read())?.isSuccess == true &&
+            (activeRequest?.let { !requiresAudioPermission(it) || app.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED } == true) &&
             (activeRequest?.mode != ReactionMode.SCREEN_AND_FRONT_CAMERA || activeCamera != null)
     }
     fun cameraRequired(attemptId: String): Boolean = token?.id == attemptId &&
         activeRequest?.mode == ReactionMode.SCREEN_AND_FRONT_CAMERA
+    fun microphoneRequired(attemptId: String): Boolean = token?.id == attemptId && activeRequest?.microphone == true
     fun serviceAccepted(attemptId: String) {
         val attempt = token?.takeIf { it.id == attemptId } ?: return
         mutableUi.update { it.copy(serviceRunning = true) }
         if (session.value?.state != RecordingState.PREPARING || stopping ||
             activeRequest?.validate(ReactionCapabilityDetector(app).read())?.isSuccess != true ||
+            (activeRequest?.let { requiresAudioPermission(it) && app.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED } == true) ||
             (activeRequest?.mode == ReactionMode.SCREEN_AND_FRONT_CAMERA && activeCamera == null)) {
             grant = null; activeRequest = null; activeCamera = null; policy.failed(attempt, RecordingErrorCode.UNKNOWN); return
         }
@@ -245,7 +253,11 @@ class ScreenRecordingController(private val app: Application) {
                 }
                 displayListener = listener; displayManager.registerDisplayListener(listener, main)
                 val frozen = checkNotNull(size)
-                encoder = ScreenEncoder(file, frozen, checkNotNull(codecName), { surface ->
+                val audioSources = buildSet {
+                    if (checkNotNull(activeRequest).microphone) add(CaptureSource.MICROPHONE)
+                    if (checkNotNull(activeRequest).internalAudio) add(CaptureSource.INTERNAL_AUDIO)
+                }
+                encoder = ScreenEncoder(file, frozen, checkNotNull(codecName), mp, audioSources, { surface ->
                     if (token !== attempt || stopping) { encoder?.stop() }
                     else if (activeRequest?.mode == ReactionMode.SCREEN_AND_FRONT_CAMERA) {
                         try {
@@ -262,15 +274,19 @@ class ScreenRecordingController(private val app: Application) {
                             DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, surface, null, main)
                         checkNotNull(display); policy.projectionReady(attempt)
                     } catch (_: Exception) { interrupt(attempt, RecordingErrorCode.SOURCE_UNAVAILABLE, ScreenIssue.CAPTURE) }
-                }, { pts, bytes ->
+                }, { source, pts, bytes ->
                     if (token === attempt && !stopping) {
-                        val sources = if (activeRequest?.mode == ReactionMode.SCREEN_AND_FRONT_CAMERA && lastCameraFrameAt > 0L &&
-                            SystemClock.elapsedRealtime() - lastCameraFrameAt <= CAMERA_FRAME_TIMEOUT_MILLIS)
-                            setOf(CaptureSource.SCREEN, CaptureSource.FRONT_CAMERA) else setOf(CaptureSource.SCREEN)
-                        policy.sampleWritten(attempt, pts, bytes, sources)
+                        sampledSources += source
+                        if (source == CaptureSource.SCREEN && activeRequest?.mode == ReactionMode.SCREEN_AND_FRONT_CAMERA &&
+                            lastCameraFrameAt > 0L && SystemClock.elapsedRealtime() - lastCameraFrameAt <= CAMERA_FRAME_TIMEOUT_MILLIS)
+                            sampledSources += CaptureSource.FRONT_CAMERA
+                        policy.sampleWritten(attempt, pts, bytes, sampledSources.toSet())
                         if (session.value?.state == RecordingState.RECORDING && recordingStartedAt == 0L)
                             recordingStartedAt = SystemClock.elapsedRealtime()
                     }
+                }, { source, _ ->
+                    if (token === attempt && !stopping) interrupt(attempt, RecordingErrorCode.ENCODER_FAILED,
+                        if (source == CaptureSource.MICROPHONE || source == CaptureSource.INTERNAL_AUDIO) ScreenIssue.AUDIO_CAPTURE else ScreenIssue.CAPTURE)
                 }, { error -> finished(attempt, file, frozen, error) }).also { it.start() }
             } catch (error: Exception) {
                 grant = null; activeRequest = null; activeCamera = null
@@ -314,7 +330,17 @@ class ScreenRecordingController(private val app: Application) {
                         check(metadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toInt() == frozen.width)
                         check(metadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toInt() == frozen.height)
                         check(metadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION) == "0")
-                        check(metadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO) != "yes")
+                        val hasAudio = metadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO) == "yes"
+                        val expectedAudioTracks = activeRequest?.let { (if (it.microphone) 1 else 0) + (if (it.internalAudio) 1 else 0) } ?: 0
+                        check(hasAudio == (expectedAudioTracks > 0))
+                        val extractor = MediaExtractor()
+                        try {
+                            extractor.setDataSource(file.path)
+                            val actualAudioTracks = (0 until extractor.trackCount).count {
+                                extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
+                            }
+                            check(actualAudioTracks == expectedAudioTracks) { "Finalized audio tracks did not match the requested sources" }
+                        } finally { extractor.release() }
                     } finally { metadata.release() }
                     files.publish(file)
                 }
@@ -335,6 +361,7 @@ class ScreenRecordingController(private val app: Application) {
         compositor?.stop(); compositor = null
         val old = projection; projection = null; old?.stop()
     }
+    private fun requiresAudioPermission(request: ReactionRecordingRequest) = request.microphone || request.internalAudio
     fun serviceEnded(attemptId: String) {
         if (token?.id != attemptId) return
         mutableUi.update { it.copy(serviceRunning = false) }
@@ -343,9 +370,11 @@ class ScreenRecordingController(private val app: Application) {
     }
     fun serviceFailed(attemptId: String) {
         if (token?.id != attemptId) return
+        val audioPermissionMissing = activeRequest?.let { requiresAudioPermission(it) &&
+            app.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED } == true
         grant = null; activeRequest = null; activeCamera = null; consentCamera = null
         token?.let { policy.failed(it, RecordingErrorCode.PERMISSION_DENIED) }
-        mutableUi.update { it.copy(serviceRunning = false, issue = ScreenIssue.CAPTURE) }
+        mutableUi.update { it.copy(serviceRunning = false, issue = if (audioPermissionMissing) ScreenIssue.MICROPHONE_PERMISSION else ScreenIssue.CAPTURE) }
     }
 
     companion object { private const val CAMERA_FRAME_TIMEOUT_MILLIS = 1_200L }

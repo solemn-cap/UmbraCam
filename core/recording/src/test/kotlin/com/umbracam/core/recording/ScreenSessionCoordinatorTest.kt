@@ -56,6 +56,18 @@ class ScreenSessionCoordinatorTest {
         assertEquals(RecordingState.RECORDING, coordinator.session.value!!.state)
         assertEquals(required, coordinator.session.value!!.availableSources)
     }
+    @Test fun requestedAudioTracksMustProduceSamplesBeforeRecordingBegins() {
+        val consent = coordinator.requestConsent()!!
+        val required = setOf(CaptureSource.SCREEN, CaptureSource.MICROPHONE, CaptureSource.INTERNAL_AUDIO)
+        val token = coordinator.consented(consent, "audio", "attempt", required)!!
+        coordinator.projectionReady(token)
+        coordinator.sampleWritten(token, 1, 100, setOf(CaptureSource.SCREEN))
+        coordinator.sampleWritten(token, 2, 100, setOf(CaptureSource.SCREEN, CaptureSource.MICROPHONE))
+        assertEquals(RecordingState.PREPARING, coordinator.session.value!!.state)
+        coordinator.sampleWritten(token, 3, 100, required)
+        assertEquals(RecordingState.RECORDING, coordinator.session.value!!.state)
+        assertEquals(required, coordinator.session.value!!.availableSources)
+    }
     @Test fun combinedOutputLosesRecordingWhenCameraSourceIsLost() {
         val consent = coordinator.requestConsent()!!
         val required = setOf(CaptureSource.SCREEN, CaptureSource.FRONT_CAMERA)

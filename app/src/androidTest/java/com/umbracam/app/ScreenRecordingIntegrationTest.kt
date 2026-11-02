@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.NotificationManager
 import android.app.KeyguardManager
 import android.media.MediaMetadataRetriever
+import android.media.MediaExtractor
 import android.os.Build
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityNodeInfo
@@ -241,6 +242,35 @@ class ScreenRecordingIntegrationTest {
                 val frame = metadata.getFrameAtTime(0); assertNotNull("$layout must contain a decodable composite frame", frame); frame?.recycle()
             } finally { metadata.release() }
         }
+    }
+
+    @Test fun microphoneCommentaryIsMuxedAndWaitsForAudioSamples() {
+        instrumentation.uiAutomation.grantRuntimePermission("com.umbracam.app", Manifest.permission.RECORD_AUDIO)
+        if (Build.VERSION.SDK_INT >= 33) instrumentation.uiAutomation.grantRuntimePermission("com.umbracam.app", Manifest.permission.POST_NOTIFICATIONS)
+        enter()
+        compose.onNodeWithTag("reaction-microphone").performClick()
+        compose.onNodeWithText("Start screen recording").performScrollTo().performClick()
+        systemButton(true)
+        try {
+            compose.waitUntil(30_000) { controller.session.value?.state == RecordingState.RECORDING }
+            assertTrue(CaptureSource.MICROPHONE in controller.session.value!!.availableSources)
+            compose.waitUntil(10_000) { controller.ui.value.elapsedMillis >= 2_000 }
+        } finally { instrumentation.runOnMainSync { controller.stop() } }
+        compose.waitUntil(40_000) { !controller.isBusy }
+        assertEquals(RecordingState.SAVED, controller.session.value?.state)
+        val segment = controller.session.value!!.completedSegments.last()
+        val file = File(compose.activity.noBackupFilesDir, "screen/recordings/${segment.storageId}")
+        val extractor = MediaExtractor()
+        try {
+            extractor.setDataSource(file.path)
+            val audio = (0 until extractor.trackCount).filter { extractor.getTrackFormat(it).getString(android.media.MediaFormat.KEY_MIME)?.startsWith("audio/") == true }
+            val video = (0 until extractor.trackCount).filter { extractor.getTrackFormat(it).getString(android.media.MediaFormat.KEY_MIME)?.startsWith("video/") == true }
+            assertEquals(1, audio.size); assertEquals(1, video.size)
+            extractor.selectTrack(audio.single()); assertTrue(extractor.advance()); val audioPts = extractor.sampleTime
+            extractor.unselectTrack(audio.single()); extractor.selectTrack(video.single()); assertTrue(extractor.advance()); val videoPts = extractor.sampleTime
+            assertTrue(audioPts >= 0); assertTrue(videoPts >= 0)
+            assertTrue("Audio/video initial timestamps diverged: $audioPts / $videoPts", kotlin.math.abs(audioPts - videoPts) < 250_000)
+        } finally { extractor.release() }
     }
 
     @Test fun frontCameraLossStopsCombinedCaptureAndPreservesPartialVideo() {

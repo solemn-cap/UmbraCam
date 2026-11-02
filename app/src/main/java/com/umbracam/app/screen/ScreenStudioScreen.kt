@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -27,6 +28,9 @@ import com.umbracam.app.SuiteIcon
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umbracam.app.R
 import com.umbracam.core.recording.*
+import java.util.concurrent.atomic.AtomicReference
+
+private enum class AudioPermissionPurpose { MICROPHONE_TOGGLE, INTERNAL_AUDIO_TOGGLE, START }
 
 @Composable
 fun ScreenStudioScreen(model: ScreenStudioViewModel, onStart: (ReactionRecordingRequest) -> Unit, onRecordings: () -> Unit) {
@@ -38,24 +42,52 @@ fun ScreenStudioScreen(model: ScreenStudioViewModel, onStart: (ReactionRecording
     var modeName by rememberSaveable { mutableStateOf(ReactionMode.SCREEN_ONLY.name) }
     var layoutName by rememberSaveable { mutableStateOf(ReactionLayout.PICTURE_IN_PICTURE.name) }
     var microphoneEnabled by rememberSaveable { mutableStateOf(false) }
+    var internalAudioEnabled by rememberSaveable { mutableStateOf(false) }
     var pendingStart by remember { mutableStateOf<ReactionRecordingRequest?>(null) }
+    var audioPermissionPurpose by remember { mutableStateOf<AudioPermissionPurpose?>(null) }
+    val continueStart = remember { AtomicReference<((ReactionRecordingRequest) -> Unit)?>(null) }
     val mode = ReactionMode.valueOf(modeName)
     val layout = ReactionLayout.valueOf(layoutName)
-    val request = ReactionRecordingRequest(mode = mode, layout = layout, microphone = microphoneEnabled)
+    val request = ReactionRecordingRequest(mode = mode, layout = layout, microphone = microphoneEnabled, internalAudio = internalAudioEnabled)
     val requestAvailable = request.validate(reactionCapability).isSuccess
     val notifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        val pending = pendingStart; pendingStart = null
-        if (granted && pending != null) onStart(pending) else if (!granted) model.notificationDenied()
+        val pending = pendingStart
+        if (granted && pending != null) continueStart.get()?.invoke(pending)
+        else { pendingStart = null; if (!granted) model.notificationDenied() }
+    }
+    val audioPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val purpose = audioPermissionPurpose; audioPermissionPurpose = null
+        when (purpose) {
+            AudioPermissionPurpose.MICROPHONE_TOGGLE -> microphoneEnabled = granted
+            AudioPermissionPurpose.INTERNAL_AUDIO_TOGGLE -> internalAudioEnabled = granted
+            AudioPermissionPurpose.START -> {
+                val pending = pendingStart
+                if (granted && pending != null) continueStart.get()?.invoke(pending)
+                else { pendingStart = null; if (!granted) model.microphonePermissionDenied() }
+            }
+            null -> Unit
+        }
+        if (!granted && purpose != AudioPermissionPurpose.START) model.microphonePermissionDenied()
     }
     val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         val pending = pendingStart
-        if (granted && pending != null) {
-            if (Build.VERSION.SDK_INT >= 33 && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
-                notifications.launch(Manifest.permission.POST_NOTIFICATIONS)
-            else { pendingStart = null; onStart(pending) }
-        } else { pendingStart = null; model.cameraPermissionDenied() }
+        if (granted && pending != null) continueStart.get()?.invoke(pending)
+        else { pendingStart = null; model.cameraPermissionDenied() }
     }
-    val microphonePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> microphoneEnabled = granted }
+    continueStart.set { pending ->
+        pendingStart = pending
+        when {
+            pending.mode == ReactionMode.SCREEN_AND_FRONT_CAMERA && context.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ->
+                cameraPermission.launch(Manifest.permission.CAMERA)
+            (pending.microphone || pending.internalAudio) && context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED -> {
+                audioPermissionPurpose = AudioPermissionPurpose.START
+                audioPermission.launch(Manifest.permission.RECORD_AUDIO)
+            }
+            Build.VERSION.SDK_INT >= 33 && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED ->
+                notifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+            else -> { pendingStart = null; onStart(pending) }
+        }
+    }
     val busy = session?.state in SingleCameraSessionCoordinator.busyStates
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         NeonPanel(Modifier.fillMaxWidth()) {
@@ -113,13 +145,30 @@ fun ScreenStudioScreen(model: ScreenStudioViewModel, onStart: (ReactionRecording
             }),
                 Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Switch(checked = microphoneEnabled, onCheckedChange = { enabled ->
-                if (enabled && context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED)
-                    microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
+                if (enabled && context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    audioPermissionPurpose = AudioPermissionPurpose.MICROPHONE_TOGGLE
+                    audioPermission.launch(Manifest.permission.RECORD_AUDIO)
+                }
                 else microphoneEnabled = enabled
-            }, enabled = reactionCapability.microphone && reactionCapability.microphoneCapture && !busy)
+            }, enabled = reactionCapability.microphone && reactionCapability.microphoneCapture && !busy,
+                modifier = Modifier.testTag("reaction-microphone"))
         }
-        Text(stringResource(R.string.reaction_internal_audio_unavailable), style = MaterialTheme.typography.bodySmall,
+        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(stringResource(if (reactionCapability.internalAudioCapture) R.string.reaction_internal_audio_enable else R.string.reaction_internal_audio_unavailable),
+                Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Switch(checked = internalAudioEnabled, onCheckedChange = { enabled ->
+                if (enabled && context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    audioPermissionPurpose = AudioPermissionPurpose.INTERNAL_AUDIO_TOGGLE
+                    audioPermission.launch(Manifest.permission.RECORD_AUDIO)
+                } else internalAudioEnabled = enabled
+            }, enabled = reactionCapability.internalAudioCapture && !busy,
+                modifier = Modifier.testTag("reaction-internal-audio"))
+        }
+        if (reactionCapability.internalAudioCapture) Text(stringResource(R.string.reaction_internal_audio_limits), style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (microphoneEnabled && internalAudioEnabled) Text(stringResource(R.string.reaction_audio_separate_tracks),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(stringResource(when {
             ui.initializing -> R.string.checking_previous_recording
             ui.awaitingConsent -> R.string.screen_awaiting
@@ -138,6 +187,7 @@ fun ScreenStudioScreen(model: ScreenStudioViewModel, onStart: (ReactionRecording
             ScreenIssue.FRONT_CAMERA -> R.string.reaction_camera_failed
             ScreenIssue.CAMERA_BUSY -> R.string.screen_camera_busy
             ScreenIssue.MICROPHONE_PERMISSION -> R.string.error_microphone_permission
+            ScreenIssue.AUDIO_CAPTURE -> R.string.reaction_audio_capture_failed
             ScreenIssue.NOTIFICATIONS -> R.string.error_notification_permission
             ScreenIssue.UNSUPPORTED -> R.string.screen_unsupported
             ScreenIssue.STORAGE -> R.string.error_storage
@@ -152,12 +202,7 @@ fun ScreenStudioScreen(model: ScreenStudioViewModel, onStart: (ReactionRecording
         if (busy) Box(Modifier.fillMaxWidth(),contentAlignment=Alignment.Center) {
             RecordAction(stringResource(R.string.camera_stop),true,session?.state in setOf(RecordingState.PREPARING, RecordingState.RECORDING),model::stop)
         } else NeonButton(stringResource(if (mode == ReactionMode.SCREEN_ONLY) R.string.screen_start else R.string.reaction_start),onClick = {
-            pendingStart = request
-            if (mode == ReactionMode.SCREEN_AND_FRONT_CAMERA && context.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
-                cameraPermission.launch(Manifest.permission.CAMERA)
-            else if (Build.VERSION.SDK_INT >= 33 && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
-                notifications.launch(Manifest.permission.POST_NOTIFICATIONS)
-            else { pendingStart = null; onStart(request) }
+            continueStart.get()?.invoke(request)
         }, enabled = requestAvailable && !ui.initializing && !ui.awaitingConsent && !ui.serviceRunning,modifier=Modifier.fillMaxWidth())
         if (ui.issue == ScreenIssue.NOTIFICATIONS) TextButton(onClick = {
             context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)))

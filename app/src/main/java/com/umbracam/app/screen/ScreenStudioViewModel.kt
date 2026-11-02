@@ -37,5 +37,6 @@ class ScreenStudioViewModel(application: Application) : AndroidViewModel(applica
     fun paused() { resumed = false; if (reply != null) { reply = null; expiry?.cancel(); controller.cancelConsent() } }
     fun stop() = controller.stop()
     fun cameraPermissionDenied() = controller.cameraPermissionDenied()
+    fun microphonePermissionDenied() = controller.microphonePermissionDenied()
     fun notificationDenied() = controller.notificationDenied()
 }

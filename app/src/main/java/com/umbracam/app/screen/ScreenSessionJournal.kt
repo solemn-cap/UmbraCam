@@ -19,7 +19,7 @@ internal class ScreenSessionJournal(private val directory: File) {
         require(session.completedSegments.size <= 100)
         check(directory.isDirectory || directory.mkdirs())
         val data = Properties().apply {
-            setProperty("version", "screen-2"); setProperty("id", session.id)
+            setProperty("version", "screen-3"); setProperty("id", session.id)
             setProperty("sources", session.request.requiredSources.sortedBy { it.ordinal }.joinToString(",") { it.name })
             setProperty("state", session.state.name)
             setProperty("count", session.completedSegments.size.toString())
@@ -59,7 +59,7 @@ internal class ScreenSessionJournal(private val directory: File) {
         require(file.length() <= 65536)
         val data = Properties().also { file.inputStream().use(it::load) }
         val version = data.getProperty("version")
-        require(version == "screen-1" || version == "screen-2")
+        require(version == "screen-1" || version == "screen-2" || version == "screen-3")
         val id = data.getProperty("id").also { UUID.fromString(it); require(file.name == "$it.properties") }
         val sources = if (version == "screen-1") setOf(CaptureSource.SCREEN) else
             data.getProperty("sources").split(',').map(CaptureSource::valueOf).toSet()
@@ -78,6 +78,6 @@ internal class ScreenSessionJournal(private val directory: File) {
             error = data.getProperty("error")?.let { RecordingError(RecordingErrorCode.valueOf(it), false) })
     }.getOrNull()
 
-    private fun isSupportedRequest(sources: Set<CaptureSource>) = sources == setOf(CaptureSource.SCREEN) ||
-        sources == setOf(CaptureSource.SCREEN, CaptureSource.FRONT_CAMERA)
+    private fun isSupportedRequest(sources: Set<CaptureSource>) = CaptureSource.SCREEN in sources &&
+        sources.all { it in setOf(CaptureSource.SCREEN, CaptureSource.FRONT_CAMERA, CaptureSource.MICROPHONE, CaptureSource.INTERNAL_AUDIO) }
 }

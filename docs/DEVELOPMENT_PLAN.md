@@ -4,7 +4,7 @@ Implement one milestone per approved task. Each milestone must build, pass relev
 
 ## Active Milestone 5 acceptance gate
 
-The Reaction Studio logic slice is implemented and its accumulated verification batch passed: 178 JVM tests, debug and AndroidTest APK assembly, lint with 0 errors/27 warnings, and native combined PiP/split plus camera-loss checks on API29/API30/API36 emulators. The two targeted API30 methods passed on the fresh `UmbraCam_API30_FreshCam` AVD. See [MILESTONE_5_PROGRESS.md](MILESTONE_5_PROGRESS.md). Physical screen-only/combined acceptance remains pending. A recent connected test-install attempt cleared or replaced the daily-use phone app data; treat its private recordings as potentially lost and do not run further instrumentation on that handset. Microphone and internal playback audio remain unavailable. Do not advance to another milestone before reviewing this gate.
+The prior Reaction Studio camera/screen logic batch passed 178 JVM tests, debug and AndroidTest APK assembly, lint with 0 errors/27 warnings, and native combined PiP/split plus camera-loss checks on API29/API30/API36 emulators. The optional microphone/internal playback audio implementation is now added; it has not been compiled or tested per the user's test sequencing. See [MILESTONE_5_PROGRESS.md](MILESTONE_5_PROGRESS.md). Physical screen-only/combined/audio acceptance remains pending. A recent connected test-install attempt cleared or replaced the daily-use phone app data; treat its private recordings as potentially lost. User authorized discarding those recordings; do not run test-install operations on that handset until final acceptance planning.
 
 ## Fast path to a closed tester round
 

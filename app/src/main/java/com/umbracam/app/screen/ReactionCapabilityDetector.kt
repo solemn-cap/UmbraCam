@@ -3,6 +3,7 @@ package com.umbracam.app.screen
 import android.content.Context
 import android.app.ActivityManager
 import android.content.pm.PackageManager
+import android.os.Build
 import com.umbracam.core.recording.*
 
 /** Reports device capabilities only; it never opens a camera or requests permission. */
@@ -15,9 +16,10 @@ class ReactionCapabilityDetector(private val context: Context) {
         screen = true,
         frontCamera = front,
         microphone = context.packageManager.hasSystemFeature(PackageManager.FEATURE_MICROPHONE),
-        internalAudio = false,
+        internalAudio = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q,
         composedLayouts = layouts,
-        microphoneCapture = false,
+        microphoneCapture = context.packageManager.hasSystemFeature(PackageManager.FEATURE_MICROPHONE),
+        internalAudioCapture = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q,
         )
     }
 }

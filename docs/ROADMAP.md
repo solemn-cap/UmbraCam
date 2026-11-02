@@ -8,11 +8,11 @@ For this roadmap, the premium build is Milestones 7–9: an encrypted Private Va
 
 ## Current baseline — implementation complete, acceptance open
 
-The neon beta2 foundation and the Milestone 5 Reaction Studio logic slice are implemented. Reaction Studio supports silent screen capture and screen-plus-front-camera PiP/split composition, with fresh consent, typed capability gates, both-source readiness and camera-loss finalization. The latest accumulated batch passed 178 JVM tests, build/AndroidTest APK assembly and lint (0 errors/27 warnings); native combined-layout capture and camera-loss finalization passed on API29, API30 and API36 emulators. The API30 tests ran on a fresh AVD with a working camera service. Physical Reaction Studio acceptance remains open; the handset must be cool and explicitly available before capture. Full evidence is in [MILESTONE_5_PROGRESS.md](MILESTONE_5_PROGRESS.md).
+The neon beta2 foundation and the Milestone 5 Reaction Studio implementation are in place. Screen and screen-plus-front-camera PiP/split use fresh consent and typed capability gates; optional microphone/internal playback audio now uses separate synchronized tracks, with all requested-source readiness and camera-loss finalization. The earlier accumulated batch passed 178 JVM tests, build/AndroidTest APK assembly and lint (0 errors/27 warnings); native combined-layout capture and camera-loss finalization passed on API29, API30 and API36 emulators. Those results predate the audio follow-up. The current audio diff is intentionally uncompiled/unverified until the Milestone 9 test batch. Physical Reaction Studio acceptance remains open. Full evidence and caveats are in [MILESTONE_5_PROGRESS.md](MILESTONE_5_PROGRESS.md).
 
 ### Current state and sequencing
 
-- Milestones 3–5 have substantial implementation and emulator evidence, but physical acceptance remains open. Reaction Studio microphone commentary/internal playback audio, OS sharing-control behavior, and sustained thermal/performance remain incomplete.
+- Milestones 3–5 have substantial implementation and emulator evidence, but physical acceptance remains open. Reaction Studio audio logic is now implemented as separate synchronized tracks; accumulated verification, OS sharing-control behavior, and sustained thermal/performance remain incomplete.
 - Do not spend the next iteration repeating device acceptance. Continue the planned feature implementation first, preserving the physical/device matrix for the final accumulated test pass.
 - The daily-use phone's prior app-private recordings may already have been removed by the connected test-install incident. The user has confirmed those recordings are not useful and authorized discarding them for now; this does not certify physical capture or thermal behavior.
 
@@ -72,7 +72,7 @@ Exit criteria:
 - Emulator tests cover cancellation, revocation, rotation, lock, and playback.
 - Physical tests name the device and clearly separate screen-only, screen-plus-camera, and audio results.
 
-Implementation follow-up before premium: finish the supported audio paths (opt-in microphone commentary and policy-permitted playback audio) with timestamped mixing/synchronization, truthful track metadata, and visible capability/permission states. Maintain a silent capture fallback when a source is unavailable. Do not claim universal internal-audio support.
+Implementation follow-up before premium: opt-in microphone commentary and policy-permitted playback audio are encoded into separately synchronized tracks with truthful readiness/finalization checks and visible capability/permission states. Mixing is deferred to Milestone 9. Maintain a silent capture fallback when audio is not selected. Do not claim universal internal-audio support.
 
 ## Milestone 6 — SOS Mode
 
