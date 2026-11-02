@@ -94,6 +94,8 @@ This is an optional developer verification step, not a product export feature. D
 - Security: key invalidation, ciphertext/metadata tampering, biometric cancel/lockout, temporary plaintext cleanup, export grants, logs, backup and thumbnail leakage.
 
 ## Result discipline
+
+**Do not run `connectedDebugAndroidTest` against a daily-use phone installation with recordings that must be retained.** The Android test install path can clear or replace target app data. Use a disposable emulator/device, or first arrange and verify a separate preservation process for every file. Keep physical app data and instrumentation APK installation separate unless the target is explicitly disposable.
 Record exact commands, exit codes and reports in BUILD_VERIFICATION.md. Missing tools or devices mean blocked/unexecuted, never pass. Emulator evidence is not physical-device validation. CI should run units/lint/build and wrapper validation; add managed-device checks when an SDK-equipped runner exists.
 
 

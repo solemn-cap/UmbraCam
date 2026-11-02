@@ -4,7 +4,15 @@ Implement one milestone per approved task. Each milestone must build, pass relev
 
 ## Active Milestone 5 acceptance gate
 
-The Reaction Studio logic slice is implemented and its accumulated verification batch passed: 178 JVM tests, debug and AndroidTest APK assembly, lint with 0 errors/27 warnings, and native combined PiP/split plus camera-loss checks on API29/API30/API36 emulators. The two targeted API30 methods passed on the fresh `UmbraCam_API30_FreshCam` AVD. See [MILESTONE_5_PROGRESS.md](MILESTONE_5_PROGRESS.md). Physical screen-only/combined acceptance remains pending until the handset is cool and explicitly available. Microphone and internal playback audio remain unavailable. Do not advance to another milestone before reviewing this gate.
+The Reaction Studio logic slice is implemented and its accumulated verification batch passed: 178 JVM tests, debug and AndroidTest APK assembly, lint with 0 errors/27 warnings, and native combined PiP/split plus camera-loss checks on API29/API30/API36 emulators. The two targeted API30 methods passed on the fresh `UmbraCam_API30_FreshCam` AVD. See [MILESTONE_5_PROGRESS.md](MILESTONE_5_PROGRESS.md). Physical screen-only/combined acceptance remains pending. A recent connected test-install attempt cleared or replaced the daily-use phone app data; treat its private recordings as potentially lost and do not run further instrumentation on that handset. Microphone and internal playback audio remain unavailable. Do not advance to another milestone before reviewing this gate.
+
+## Fast path to a closed tester round
+
+1. Fix and verify instrumentation preconditions on a disposable emulator: the screen integration fixture now skips clearly when the keyguard is locked or UmbraCam is not foregrounded. Keep connected instrumentation off daily-use installs because the install path may clear app-private recordings.
+2. Finish the host and emulator verification batch for this source revision. Physical acceptance requires a disposable handset or an explicitly backed-up test installation; it is not currently safe to reuse the daily-use phone.
+3. Prepare the engineering APK and a tester guide. The guide is staged at [CLOSED_BETA_GUIDE.md](CLOSED_BETA_GUIDE.md); the current APK remains debug-signed and the package ID provisional.
+4. Once acceptance and the APK hash are reviewed, invite a small opt-in group. No external messages have been sent; the tester list/contact method is still needed.
+5. Triage tester reports, fix release-blocking issues, then decide whether to invest in durable release signing and public-store preparation. Do not present unencrypted local recording storage, missing Reaction audio, or SOS/Vault previews as completed features.
 
 User explicitly approved Phase 1 on 2026-10-30 after the approval requirement was explained. Phase 1 implementation is present. Eleven distinct runtime checks now pass on physical SM-S9080 / API 36 and an API 29 emulator, including navigation/recreation, single-camera/media checks and foreground stop behavior. Broader physical failure/performance/accessibility acceptance is still pending; see DEVICE_VALIDATION.md. That historical evidence does not validate Phase 2 service continuation. Phase 2 is now approved and under verification; dual cameras and screen capture remain deferred.
 

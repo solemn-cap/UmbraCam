@@ -2,6 +2,7 @@ package com.umbracam.app
 
 import android.Manifest
 import android.app.NotificationManager
+import android.app.KeyguardManager
 import android.media.MediaMetadataRetriever
 import android.os.Build
 import android.os.SystemClock
@@ -13,6 +14,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.umbracam.core.recording.RecordingState
 import com.umbracam.app.library.RecordingPlayerView
 import org.junit.Assert.*
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.Assume.assumeTrue
@@ -25,6 +27,20 @@ class ScreenRecordingIntegrationTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val controller get() = (compose.activity.application as UmbraCamApplication).screenRecording
+
+    @Before fun requireInteractiveUnlockedActivity() {
+        val activity = compose.activity
+        val keyguard = activity.getSystemService(KeyguardManager::class.java)
+        assumeTrue("Unlock the device before running screen integration tests", !keyguard.isKeyguardLocked)
+        val interactive = runCatching {
+            compose.waitUntil(10_000) {
+                activity.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED) &&
+                    activity.window.decorView.isShown && activity.hasWindowFocus()
+            }
+            true
+        }.getOrDefault(false)
+        assumeTrue("Bring UmbraCam to the foreground and collapse the notification shade before testing", interactive)
+    }
 
     private fun enter() {
         if (Build.VERSION.SDK_INT >= 33) instrumentation.uiAutomation.grantRuntimePermission("com.umbracam.app", Manifest.permission.POST_NOTIFICATIONS)

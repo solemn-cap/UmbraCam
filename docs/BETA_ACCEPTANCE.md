@@ -50,7 +50,7 @@ Long recordings, real calls, OEM power management, battery/thermal behavior, bro
 
 ## Recommended next task
 
-Complete the handset checks when the user explicitly makes a phone available; fix observed problems before adding features. If the phone remains busy, keep physical acceptance pending and avoid accessing it.
+Complete handset checks only on a disposable phone or a test installation whose data may be replaced. A follow-up connected test-install attempt cleared/replaced app data on the daily-use SM-S9080; see `PHYSICAL_BETA_ACCEPTANCE.md`. Fix the test preflight/readiness issue, run the final host/emulator batch, then proceed to the physical matrix on a disposable target. See `CLOSED_BETA_GUIDE.md` for a staged closed-round tester packet.
 
 
 Cleanup: the explicit API36 emulator was synced and shut down; the final process check found no project emulator/qemu processes. This pass observed POST_NOTIFICATIONS granted, CAMERA/MIC denied, accelerometer rotation1 and user rotation0; those initial settings were left unchanged. The phone was not accessed.

@@ -4,6 +4,8 @@ Capture Every Perspective. Protect Every Moment.
 
 Current development: [Milestone 5 Reaction Studio acceptance](docs/MILESTONE_5_PROGRESS.md), building on the [first useful beta](docs/FIRST_BETA_REPORT.md). Camera Studio records one camera, or an advertised compatible front/rear pair with PiP/split controls. Reaction Studio implements silent screen-only or front-camera composition in PiP/split after fresh Android consent; combined layouts and camera-loss finalization passed API29/API30/API36 emulator checks. Physical-device acceptance remains open. Microphone and internal audio are unavailable. Recordings lists completed camera and screen videos with inline playback, user-selected export and confirmed deletion. Files are private but **not encrypted**; export copies before uninstalling.
 
+Closed-round tester scope and handling notes: [CLOSED_BETA_GUIDE.md](docs/CLOSED_BETA_GUIDE.md). Physical acceptance remains open; see the current incident and retry report before running instrumentation on a device with existing recordings.
+
 Native Android app in Kotlin, Jetpack Compose and Material 3. Minimum Android 10 (API29), target API36. Dual recording requires an advertised compatible Android11+ pair and is initially restricted to portrait HD. Physical dual/performance qualification remains pending. SOS Mode is an honest preview; encryption, camera overlays and internal audio are deferred. The supplied icon and approved system light/dark foundation are preserved. Application ID is provisional.
 
 Camera permission is requested on Enable camera, microphone permission on its opt-in switch, and notification permission on Start when required. Home never starts capture. Notification access is required by the product before recording. Process death does not restart capture; explicit launch reconciles private journals and abandoned pending output. Recoverable interruptions require visible user Resume and fresh source checks.
@@ -30,6 +32,9 @@ Connect an authorized API 29+ device or start an emulator:
 ```powershell
 & "$env:ANDROID_HOME\platform-tools\adb.exe" devices
 .\gradlew.bat :app:installDebug
+```
+Run connected instrumentation tests only on a disposable emulator or a device whose UmbraCam app data has been safely backed up and may be replaced. Test APK installation can clear or replace the target app's private data; never point this task at a daily-use installation with recordings you need to preserve.
+```powershell
 .\gradlew.bat :app:connectedDebugAndroidTest
 ```
 Debug APK: `app/build/outputs/apk/debug/app-debug.apk`. Debug signing is for development only; release signing and Play publication are outside this milestone. Latest lifecycle work and checks are in [Phase 2 report](docs/PHASE_2_REPORT.md); [Phase 1 report](docs/PHASE_1_REPORT.md) is historical. [Device validation](docs/DEVICE_VALIDATION.md) records 11 distinct passing instrumentation checks per target on a physical Samsung SM-S9080 / Android 16 and an Android 10 emulator, including front/rear capture and decoded frames. The broader failure/playback/device matrix remains pending before release.
