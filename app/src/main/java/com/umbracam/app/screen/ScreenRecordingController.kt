@@ -47,7 +47,8 @@ class ScreenRecordingController(private val app: Application) {
     private val mutableUi = MutableStateFlow(ScreenStudioState())
     val ui = mutableUi.asStateFlow()
     val isBusy: Boolean get() = policy.isBusy || flight != null || ui.value.serviceRunning
-    private val files = RecordingFileStore(File(app.noBackupFilesDir, "screen"), AndroidVideoInspector())
+    private val files = RecordingFileStore(File(app.noBackupFilesDir, "screen"), AndroidVideoInspector(),
+        vaultCodec = (app as UmbraCamApplication).vaultCodec)
     private val journal = ScreenSessionJournal(File(app.noBackupFilesDir, "screen/sessions"))
     private val manager = app.getSystemService(MediaProjectionManager::class.java)
     private val main = Handler(Looper.getMainLooper())
@@ -84,9 +85,14 @@ class ScreenRecordingController(private val app: Application) {
         } }
         scope.launch {
         try {
-            val previous = withContext(io) { journal.reconcile(files) }
+            val result = withContext(io) {
+                val migration = (app as UmbraCamApplication).vaultMigration.ensureMigrated()
+                Triple(migration, journal.reconcile(files), journal.warning)
+            }
+            val (migration, previous, journalWarning) = result
+            if (migration.failed > 0) mutableUi.update { it.copy(issue = ScreenIssue.METADATA) }
             previous?.let { policy.restoreInterrupted(it) }
-            if (previous != null || journal.warning) mutableUi.update { it.copy(issue = ScreenIssue.PREVIOUS) }
+            if (previous != null || journalWarning) mutableUi.update { it.copy(issue = ScreenIssue.PREVIOUS) }
         } catch (_: Exception) { mutableUi.update { it.copy(issue = ScreenIssue.METADATA) } }
         finally { mutableUi.update { it.copy(initializing = false) } }
     } }

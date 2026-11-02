@@ -1,6 +1,6 @@
 # UmbraCam implementation status
 
-Updated 2026-11-02 after the Milestone 5 Reaction Studio implementation and accumulated verification batch.
+Updated 2026-11-02 after the Milestone 7 Private Vault implementation. Current feature work remains unverified by user direction.
 
 ## Works
 
@@ -10,6 +10,7 @@ Updated 2026-11-02 after the Milestone 5 Reaction Studio implementation and accu
 - Reaction Studio supports screen-only and screen-plus-front-camera capture, with PiP and split GLES composition. Typed requests are validated before consent, after consent, and before service acquisition; combined recording starts only after both sources are ready and stops/finalizes when the camera source is lost.
 - Recordings lists completed camera/screen media with search, source filters, playback, export and confirmed deletion.
 - SOS Mode has a Quick Record action routed through the existing rear-camera/service path, microphone off by default, and durable SOS labeling in the camera journal and Recordings library. This implementation is awaiting verification.
+- Private Vault encrypts finalized camera/screen media and its title/category index with Android Keystore AES-GCM, migrates old completed clips after verification, and provides optional biometric app lock, metadata management, playback, sharing and explicit export. This implementation is awaiting verification.
 - Shared thermal monitoring blocks warm starts and stops active capture conservatively at severe/unknown thermal state.
 - Centralized free/pro/cloud entitlement model and premium feature catalog are defined without billing or artificial recording limits.
 - Filter/effect contracts and deterministic initial filter identifiers are defined without fake processing.
@@ -20,19 +21,19 @@ Updated 2026-11-02 after the Milestone 5 Reaction Studio implementation and accu
 - Dual-camera recording is limited to advertised compatible camera groups and tested portrait HD configurations.
 - Reaction Studio audio adapter is implemented but not yet compiled or tested; playback capture is subject to API and source-app policy. Screen-camera composition is verified on API29/API30/API36 emulators, but physical-device compatibility remains unverified.
 - Recording recovery preserves completed/partial outputs and requires fresh consent where Android requires it; process-death and long-duration physical qualification remain open.
-- Settings screens expose current supported options and truthful planned-feature descriptions; persistence and secure vault controls are not complete.
-- Private Vault is local app storage and export management. Files are not encrypted and biometric access is not implemented.
+- Settings screens expose current supported options and truthful planned-feature descriptions; other preference persistence remains limited.
+- Pro creator foundations and Milestone 9 advanced creator tools remain.
 
 ## Not implemented
 
-Live billing, cloud backup, encryption, biometric vault lock, advanced reaction layouts, filters/effects processing, teleprompter, AI tools, emergency messaging, and premium purchase flows.
+Live billing, cloud backup, advanced reaction layouts, filters/effects processing, teleprompter, AI tools, emergency messaging, and premium purchase flows.
 
 ## Verification and limits
 
-The 2026-11-02 baseline Milestone 5 batch passed 178 JVM tests (124 core, 54 app), debug and AndroidTest APK assembly, and lint (0 errors, 27 warnings), before the current audio and SOS implementation follow-ups. Native checks passed combined PiP/split capture and camera-source-loss finalization on API29, API30 and API36 emulators. The current audio and SOS changes have not been compiled/tested by user direction. Physical screen-only/combined/audio/SOS acceptance, OS sharing-chip behavior, sustained throughput and thermal performance remain open. See [MILESTONE_5_PROGRESS.md](MILESTONE_5_PROGRESS.md) and [MILESTONE_6_PROGRESS.md](MILESTONE_6_PROGRESS.md).
+The 2026-11-02 baseline Milestone 5 batch passed 178 JVM tests (124 core, 54 app), debug and AndroidTest APK assembly, and lint (0 errors, 27 warnings), before the current audio and SOS implementation follow-ups. Native checks passed combined PiP/split capture and camera-source-loss finalization on API29, API30 and API36 emulators. The current audio and SOS changes have not been compiled/tested by user direction. Physical screen-only/combined/audio/SOS acceptance, OS sharing-chip behavior, sustained throughput and thermal performance remain open. See [MILESTONE_5_PROGRESS.md](MILESTONE_5_PROGRESS.md), [MILESTONE_6_PROGRESS.md](MILESTONE_6_PROGRESS.md) and [MILESTONE_7_PROGRESS.md](MILESTONE_7_PROGRESS.md).
 
 ## Recommended next step
 
-Continue with Milestone 7 Private Vault, then Milestones 8–9 creator features before the accumulated test pass. Physical acceptance remains open and is deferred to that final pass.
+Continue with Milestones 8–9 creator features before the accumulated test pass. Physical acceptance remains open and is deferred to that final pass.
 
 See the complete staged delivery plan in [ROADMAP.md](ROADMAP.md).

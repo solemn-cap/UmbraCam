@@ -70,7 +70,8 @@ class CameraRecordingController(application: Application) {
     val session = coordinator.session
     private val mutableUi = MutableStateFlow(CameraStudioState())
     val ui = mutableUi.asStateFlow()
-    private val files = RecordingFileStore(File(app.noBackupFilesDir, "camera"), AndroidVideoInspector())
+    private val files = RecordingFileStore(File(app.noBackupFilesDir, "camera"), AndroidVideoInspector(),
+        vaultCodec = (app as com.umbracam.app.UmbraCamApplication).vaultCodec)
     private val journal = RecordingSessionJournal(File(app.noBackupFilesDir, "camera/sessions"))
     private val io = Executors.newSingleThreadExecutor { runnable -> Thread(runnable, "UmbraCam-storage") }.asCoroutineDispatcher()
     private val captureLifecycle = object : LifecycleOwner {
@@ -108,7 +109,12 @@ class CameraRecordingController(application: Application) {
         } }
         scope.launch {
             try {
-                val (previous, unverified) = withContext(io) { journal.reconcile(files) to journal.hadUnverifiedOutput }
+                val result = withContext(io) {
+                    val migration = (app as com.umbracam.app.UmbraCamApplication).vaultMigration.ensureMigrated()
+                    Triple(migration, journal.reconcile(files), journal.hadUnverifiedOutput)
+                }
+                val (migration, previous, unverified) = result
+                if (migration.failed > 0) mutableUi.update { it.copy(issue = CameraIssue.METADATA) }
                 previous?.let { coordinator.restoreInterrupted(it, journal.reconciledDual); mutableUi.update { state -> state.copy(issue = CameraIssue.PREVIOUS_SESSION, diagnostics = journal.reconciledDiagnostics) } }
                 if (previous == null && unverified) mutableUi.update { it.copy(issue = CameraIssue.PREVIOUS_SESSION) }
             } catch (_: Exception) {

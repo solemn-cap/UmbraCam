@@ -2,6 +2,10 @@ package com.umbracam.app.camera
 
 import java.io.File
 import java.io.IOException
+import java.util.UUID
+import javax.crypto.spec.SecretKeySpec
+import com.umbracam.app.vault.EncryptedFileCodec
+import com.umbracam.app.vault.VaultKeySource
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -66,6 +70,32 @@ class RecordingFileStoreTest {
         assertEquals("keep", external.readText())
     }
 
+    @Test fun encryptedPublicationAndLegacyMigrationPreserveCanonicalNames() {
+        val codec=EncryptedFileCodec(VaultKeySource { SecretKeySpec(ByteArray(32) { 7 },"AES") })
+        val secure=RecordingFileStore(root(),inspector,{ Long.MAX_VALUE },codec)
+        val pending=secure.reserve().apply { writeText("new capture") }
+        val published=secure.publish(pending)
+        val encrypted=File(root(),"recordings/${published.segment.storageId}")
+        assertTrue(codec.isEncrypted(encrypted))
+        assertEquals("new capture",codec.openDecrypted(encrypted).bufferedReader().use { it.readText() })
+        val legacyId=UUID.randomUUID().toString()+".mp4"
+        val legacy=File(root(),"recordings/$legacyId").apply { writeText("old capture") }
+        val report=secure.migratePlaintextRecordings()
+        assertEquals(1,report.migrated); assertEquals(0,report.failed)
+        assertEquals(legacyId,legacy.name); assertTrue(codec.isEncrypted(legacy))
+        assertEquals("old capture",codec.openDecrypted(legacy).bufferedReader().use { it.readText() })
+    }
+
+    @Test fun failedLegacyVerificationKeepsOriginalPlaintextUntouched() {
+        val codec=EncryptedFileCodec(VaultKeySource { SecretKeySpec(ByteArray(32) { 9 },"AES") })
+        var calls=0
+        val changingInspector=VideoInspector { calls++; if(calls==1) InspectedVideo(1000,true) else InspectedVideo(2000,true) }
+        val store=RecordingFileStore(root(),changingInspector,{ Long.MAX_VALUE },codec)
+        val original=File(root(),"recordings/${UUID.randomUUID()}.mp4").apply { parentFile!!.mkdirs();writeText("keep me") }
+        val report=store.migratePlaintextRecordings()
+        assertEquals(0,report.migrated); assertEquals(1,report.failed)
+        assertEquals("keep me",original.readText()); assertFalse(codec.isEncrypted(original))
+    }
     @Test fun unusableDurationIsNotSaved() {
         val store = store(VideoInspector { InspectedVideo(0, false) })
         val pending = store.reserve().apply { writeText("bad duration") }

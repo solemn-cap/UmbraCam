@@ -5,7 +5,7 @@ import android.content.Intent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.SystemBarStyle
@@ -20,7 +20,7 @@ import com.umbracam.app.screen.ScreenStudioViewModel
 import com.umbracam.app.camera.CameraStudioViewModel
 import com.umbracam.core.recording.ReactionRecordingRequest
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     private var cameraOpenRequest by mutableIntStateOf(0)
     private var sosOpenRequest by mutableIntStateOf(0)
     private var screenOpenRequest by mutableIntStateOf(0)

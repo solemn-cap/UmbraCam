@@ -36,6 +36,7 @@ dependencies {
     implementation(libs.camera.view)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.biometric)
     debugImplementation(libs.compose.tooling)
     debugImplementation(libs.compose.test.manifest)
     testImplementation(libs.junit)

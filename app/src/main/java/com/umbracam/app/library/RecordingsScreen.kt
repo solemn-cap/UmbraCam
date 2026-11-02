@@ -18,7 +18,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.fragment.app.FragmentActivity
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.*
@@ -40,11 +42,18 @@ fun RecordingsScreen(model: RecordingsViewModel) {
     var deleting by remember { mutableStateOf<CatalogRecording?>(null) }
     var filter by rememberSaveable { mutableStateOf("all") }
     var query by rememberSaveable { mutableStateOf("") }
+    var categoryFilter by rememberSaveable { mutableStateOf("all") }
+    var sort by rememberSaveable { mutableStateOf("newest") }
+    var renameTarget by remember { mutableStateOf<CatalogRecording?>(null) }
+    var renameText by remember { mutableStateOf("") }
+    var categoryTarget by remember { mutableStateOf<CatalogRecording?>(null) }
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("video/mp4"),model::exportTo)
     val owner=LocalLifecycleOwner.current
     val keyboard=LocalSoftwareKeyboardController.current
+    val context=LocalContext.current
+    val activity=context as? FragmentActivity
     DisposableEffect(owner,model) {
-        val observer=LifecycleEventObserver { _,event -> if(event==Lifecycle.Event.ON_PAUSE) model.closePlayer() }
+        val observer=LifecycleEventObserver { _,event -> if(event==Lifecycle.Event.ON_PAUSE) model.lockIfNeeded() }
         owner.lifecycle.addObserver(observer)
         onDispose { owner.lifecycle.removeObserver(observer); model.closePlayer() }
     }
@@ -53,9 +62,14 @@ fun RecordingsScreen(model: RecordingsViewModel) {
     val screenLabel=stringResource(R.string.library_screen)
     val sosLabel=stringResource(R.string.library_sos_kind)
     val dateFormat=remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM,DateFormat.SHORT) }
-    val visible=filterRecordings(state.recordings,filter,query) { recording ->
-        (if(recording.kind=="sos") sosLabel else if(recording.source=="camera") cameraLabel else screenLabel)+" "+dateFormat.format(Date(recording.modifiedMillis))
-    }
+    val visible=if(state.locked) emptyList() else filterRecordings(state.recordings,filter,query, { recording ->
+        (recording.title ?: if(recording.kind=="sos") sosLabel else if(recording.source=="camera") cameraLabel else screenLabel)+" "+dateFormat.format(Date(recording.modifiedMillis))
+    }, categoryFilter).let { entries -> when(sort) {
+        "oldest" -> entries.sortedBy { it.modifiedMillis }
+        "name" -> entries.sortedBy { it.title ?: it.name }
+        "duration" -> entries.sortedByDescending { it.durationMillis ?: 0L }
+        else -> entries.sortedByDescending { it.modifiedMillis }
+    } }
     LazyColumn(Modifier.fillMaxSize().imePadding(),verticalArrangement=Arrangement.spacedBy(14.dp),contentPadding=PaddingValues(bottom=16.dp)) {
         item {
             OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),singleLine=true,shape=RoundedCornerShape(24.dp),
@@ -66,7 +80,29 @@ fun RecordingsScreen(model: RecordingsViewModel) {
                     FilterChip(selected=filter==key,onClick={filter=key},label={Text(stringResource(label))})
                 }
             }
+            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.vault_biometric_lock),style=MaterialTheme.typography.titleSmall)
+                    Text(stringResource(if(state.biometricAvailable) R.string.vault_biometric_fallback else R.string.vault_biometric_unavailable),style=MaterialTheme.typography.bodySmall)
+                }
+                Switch(checked=state.biometricLockEnabled,onCheckedChange={ enabled -> activity?.let { model.requestBiometricLock(it,enabled) } },
+                    enabled=state.biometricAvailable && !state.working,modifier=Modifier.testTag("vault-biometric-lock"))
+            }
             Text(stringResource(R.string.library_privacy),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            if(state.vaultWarning) Text(stringResource(R.string.vault_migration_warning),style=MaterialTheme.typography.bodySmall,
+                color=MaterialTheme.colorScheme.error,modifier=Modifier.semantics { liveRegion=LiveRegionMode.Polite })
+            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.library_sort),style=MaterialTheme.typography.labelLarge)
+                listOf("newest" to R.string.library_sort_newest,"oldest" to R.string.library_sort_oldest,"name" to R.string.library_sort_name,"duration" to R.string.library_sort_duration).forEach { (key,label) ->
+                    FilterChip(selected=sort==key,onClick={sort=key},label={Text(stringResource(label))})
+                }
+            }
+            FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                listOf("all" to R.string.library_category_all,"personal" to R.string.library_category_personal,"work" to R.string.library_category_work,
+                    "travel" to R.string.library_category_travel,"important" to R.string.library_category_important,"sos" to R.string.library_category_sos).forEach { (key,label) ->
+                    FilterChip(selected=categoryFilter==key,onClick={categoryFilter=key},label={Text(stringResource(label))})
+                }
+            }
             TextButton(onClick=model::refresh,enabled=!state.loading && !state.working) { Text(stringResource(R.string.library_refresh)) }
         }
         state.message?.let { message -> item {
@@ -81,7 +117,16 @@ fun RecordingsScreen(model: RecordingsViewModel) {
             }),Modifier.semantics { liveRegion=LiveRegionMode.Polite })
         } }
         if(state.working) item { Text(stringResource(R.string.library_working)) }
-        if(state.loading) item { Text(stringResource(R.string.library_loading)) }
+        if(state.locked) item {
+            NeonPanel(Modifier.fillMaxWidth()) {
+                Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.vault_locked),style=MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.vault_unlock_detail),style=MaterialTheme.typography.bodyMedium)
+                    NeonButton(stringResource(R.string.vault_unlock),{ activity?.let(model::requestUnlock) },modifier=Modifier.fillMaxWidth())
+                }
+            }
+        }
+        else if(state.loading) item { Text(stringResource(R.string.library_loading)) }
         else if(state.recordings.isEmpty()) item { Text(stringResource(R.string.library_empty)) }
         else if(visible.isEmpty()) item { Text(stringResource(R.string.suite_no_matches)) }
         items(visible,key={it.key}) { recording ->
@@ -92,9 +137,13 @@ fun RecordingsScreen(model: RecordingsViewModel) {
                 Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                     RecordingThumbnail(model,recording)
                     Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)) {
-                        Text(kind,style=MaterialTheme.typography.titleSmall)
+                        Text(recording.title ?: kind,style=MaterialTheme.typography.titleSmall)
                         Text(date,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(stringResource(R.string.library_details,(recording.durationMillis?:0)/1000,recording.bytes/1024),style=MaterialTheme.typography.bodySmall)
+                        if(recording.width != null && recording.height != null) Text(stringResource(R.string.library_resolution,recording.width,recording.height),style=MaterialTheme.typography.bodySmall)
+                        if(recording.frameRate != null) Text(stringResource(R.string.library_frame_rate,recording.frameRate),style=MaterialTheme.typography.bodySmall)
+                        if(recording.hasAudio != null) Text(stringResource(if(recording.hasAudio) R.string.library_audio_present else R.string.library_audio_absent),style=MaterialTheme.typography.bodySmall)
+                        if(recording.category.isNotEmpty()) Text(stringResource(categoryResource(recording.category)),style=MaterialTheme.typography.labelSmall)
                         if(!recording.readable) Text(stringResource(R.string.library_unreadable),style=MaterialTheme.typography.bodySmall)
                     }
                     Box {
@@ -104,6 +153,9 @@ fun RecordingsScreen(model: RecordingsViewModel) {
                         DropdownMenu(expanded=menu,onDismissRequest={menu=false}) {
                             DropdownMenuItem(text={Text(stringResource(R.string.library_play))},enabled=recording.readable,onClick={menu=false;model.play(recording.key)})
                             DropdownMenuItem(text={Text(stringResource(R.string.library_export))},onClick={menu=false;if(model.prepareExport(recording.key)) export.launch("UmbraCam_${recording.source}_${recording.name}")})
+                            DropdownMenuItem(text={Text(stringResource(R.string.library_share))},onClick={menu=false;model.share(recording.key)})
+                            DropdownMenuItem(text={Text(stringResource(R.string.library_rename))},onClick={menu=false;renameTarget=recording;renameText=recording.title.orEmpty()})
+                            DropdownMenuItem(text={Text(stringResource(R.string.library_category))},onClick={menu=false;categoryTarget=recording})
                             DropdownMenuItem(text={Text(stringResource(R.string.library_delete))},onClick={menu=false;deleting=recording})
                         }
                     }
@@ -126,6 +178,32 @@ fun RecordingsScreen(model: RecordingsViewModel) {
         text={Text(stringResource(R.string.library_delete_detail,DateFormat.getDateTimeInstance().format(Date(recording.modifiedMillis))))},
         confirmButton={TextButton(onClick={deleting=null;model.delete(recording.key)}) { Text(stringResource(R.string.library_delete)) }},
         dismissButton={TextButton(onClick={deleting=null}) { Text(stringResource(R.string.library_keep)) }}) }
+    renameTarget?.let { recording -> AlertDialog(onDismissRequest={renameTarget=null},
+        title={Text(stringResource(R.string.library_rename))},
+        text={OutlinedTextField(renameText,{renameText=it},label={Text(stringResource(R.string.library_display_name))},singleLine=true)},
+        confirmButton={TextButton(onClick={model.rename(recording.key,renameText.trim());renameTarget=null},enabled=renameText.trim().isNotEmpty()) { Text(stringResource(R.string.library_save)) }},
+        dismissButton={TextButton(onClick={renameTarget=null}) { Text(stringResource(R.string.library_keep)) }}) }
+    categoryTarget?.let { recording ->
+        var selected by remember(recording.key) { mutableStateOf(recording.category) }
+        AlertDialog(onDismissRequest={categoryTarget=null},title={Text(stringResource(R.string.library_category))},
+            text={Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                listOf("" to R.string.library_category_none,"personal" to R.string.library_category_personal,"work" to R.string.library_category_work,
+                    "travel" to R.string.library_category_travel,"important" to R.string.library_category_important,"sos" to R.string.library_category_sos).forEach { (key,label) ->
+                    FilterChip(selected=selected==key,onClick={selected=key},label={Text(stringResource(label))})
+                }
+            }},confirmButton={TextButton(onClick={model.setCategory(recording.key,selected);categoryTarget=null}) { Text(stringResource(R.string.library_save)) }},
+            dismissButton={TextButton(onClick={categoryTarget=null}) { Text(stringResource(R.string.library_keep)) }})
+    }
+}
+
+@androidx.annotation.StringRes
+private fun categoryResource(category:String):Int = when(category) {
+    "personal" -> R.string.library_category_personal
+    "work" -> R.string.library_category_work
+    "travel" -> R.string.library_category_travel
+    "important" -> R.string.library_category_important
+    "sos" -> R.string.library_category_sos
+    else -> R.string.library_category_none
 }
 
 @Composable
@@ -133,7 +211,7 @@ private fun RecordingThumbnail(model: RecordingsViewModel, recording: CatalogRec
     val bitmap by produceState<android.graphics.Bitmap?>(null,recording.key) {
         value=withContext(Dispatchers.IO) {
             val reader=MediaMetadataRetriever()
-            try { reader.setDataSource(model.playbackFile(recording.key)?.path ?: return@withContext null)
+            try { reader.setDataSource(model.thumbnailFile(recording.key)?.path ?: return@withContext null)
                 reader.getScaledFrameAtTime(0,MediaMetadataRetriever.OPTION_CLOSEST_SYNC,192,128)
             } catch (_: Exception) { null } finally { reader.release() }
         }
