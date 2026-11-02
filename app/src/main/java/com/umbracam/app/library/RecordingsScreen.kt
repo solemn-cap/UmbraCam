@@ -51,9 +51,10 @@ fun RecordingsScreen(model: RecordingsViewModel) {
     LaunchedEffect(model) { model.refresh() }
     val cameraLabel=stringResource(R.string.library_camera)
     val screenLabel=stringResource(R.string.library_screen)
+    val sosLabel=stringResource(R.string.library_sos_kind)
     val dateFormat=remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM,DateFormat.SHORT) }
     val visible=filterRecordings(state.recordings,filter,query) { recording ->
-        (if(recording.source=="camera") cameraLabel else screenLabel)+" "+dateFormat.format(Date(recording.modifiedMillis))
+        (if(recording.kind=="sos") sosLabel else if(recording.source=="camera") cameraLabel else screenLabel)+" "+dateFormat.format(Date(recording.modifiedMillis))
     }
     LazyColumn(Modifier.fillMaxSize().imePadding(),verticalArrangement=Arrangement.spacedBy(14.dp),contentPadding=PaddingValues(bottom=16.dp)) {
         item {
@@ -85,7 +86,7 @@ fun RecordingsScreen(model: RecordingsViewModel) {
         else if(visible.isEmpty()) item { Text(stringResource(R.string.suite_no_matches)) }
         items(visible,key={it.key}) { recording ->
             var menu by remember { mutableStateOf(false) }
-            val kind=stringResource(if(recording.source=="screen") R.string.library_screen else R.string.library_camera)
+            val kind=stringResource(when { recording.kind=="sos" -> R.string.library_sos_kind; recording.source=="screen" -> R.string.library_screen; else -> R.string.library_camera })
             val date=DateFormat.getDateTimeInstance(DateFormat.MEDIUM,DateFormat.SHORT).format(Date(recording.modifiedMillis))
             Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {

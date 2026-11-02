@@ -22,6 +22,7 @@ import com.umbracam.core.recording.ReactionRecordingRequest
 
 class MainActivity : ComponentActivity() {
     private var cameraOpenRequest by mutableIntStateOf(0)
+    private var sosOpenRequest by mutableIntStateOf(0)
     private var screenOpenRequest by mutableIntStateOf(0)
     private lateinit var screenModel: ScreenStudioViewModel
     private val screenConsent = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -35,7 +36,8 @@ class MainActivity : ComponentActivity() {
         val cameraViewModel = ViewModelProvider(this)[CameraStudioViewModel::class.java]
         screenModel = ViewModelProvider(this)[ScreenStudioViewModel::class.java]
         setContent { UmbraCamTheme { UmbraCamApp(cameraViewModel, cameraOpenRequest,
-            screenViewModel = screenModel, screenOpenRequest = screenOpenRequest, onScreenStart = ::startScreenConsent) } }
+            screenViewModel = screenModel, screenOpenRequest = screenOpenRequest, onScreenStart = ::startScreenConsent,
+            sosOpenRequest = sosOpenRequest, onSosQuickRecord = ::openSosQuickRecord) } }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -52,7 +54,12 @@ class MainActivity : ComponentActivity() {
         if (intent.getBooleanExtra(EXTRA_OPEN_SCREEN, false)) {
             screenOpenRequest++; intent.removeExtra(EXTRA_OPEN_SCREEN)
         }
+        if (intent.getBooleanExtra(EXTRA_OPEN_SOS, false)) {
+            sosOpenRequest++; intent.removeExtra(EXTRA_OPEN_SOS)
+        }
     }
+
+    fun openSosQuickRecord() { sosOpenRequest++ }
 
     private fun startScreenConsent(request: ReactionRecordingRequest) { lifecycleScope.launch {
         val visible = withTimeoutOrNull(2_000) { lifecycle.currentStateFlow.first { it.isAtLeast(Lifecycle.State.RESUMED) } }
@@ -61,5 +68,5 @@ class MainActivity : ComponentActivity() {
     override fun onResume() { super.onResume(); if (::screenModel.isInitialized) screenModel.resumed() }
     override fun onPause() { if (::screenModel.isInitialized) screenModel.paused(); super.onPause() }
 
-    companion object { const val EXTRA_OPEN_CAMERA = "open_camera"; const val EXTRA_OPEN_SCREEN = "open_screen" }
+    companion object { const val EXTRA_OPEN_CAMERA = "open_camera"; const val EXTRA_OPEN_SCREEN = "open_screen"; const val EXTRA_OPEN_SOS = "open_sos" }
 }

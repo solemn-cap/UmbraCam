@@ -38,6 +38,11 @@ class RecordingCatalogTest {
         assertFalse(entry.readable); assertNull(entry.durationMillis)
         assertEquals(file.readText(), repository.input(entry.key).bufferedReader().use { it.readText() })
     }
+    @Test fun catalogLabelsJournaledSosRecordings() {
+        val root = temporary.newFolder(); val file = video(root)
+        val repository = RecordingCatalog(mapOf("camera" to root), VideoInspector { InspectedVideo(1234, false) }, { setOf(file.name) })
+        assertEquals("sos", repository.list().single().kind)
+    }
     @Test fun deletionRemovesOnlySelectedCompletedFile() {
         val root = temporary.newFolder(); val selected = video(root); val preserved = video(root)
         val pending = video(root, "pending")

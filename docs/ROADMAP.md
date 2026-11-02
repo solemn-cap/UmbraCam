@@ -8,7 +8,7 @@ For this roadmap, the premium build is Milestones 7–9: an encrypted Private Va
 
 ## Current baseline — implementation complete, acceptance open
 
-The neon beta2 foundation and the Milestone 5 Reaction Studio implementation are in place. Screen and screen-plus-front-camera PiP/split use fresh consent and typed capability gates; optional microphone/internal playback audio now uses separate synchronized tracks, with all requested-source readiness and camera-loss finalization. The earlier accumulated batch passed 178 JVM tests, build/AndroidTest APK assembly and lint (0 errors/27 warnings); native combined-layout capture and camera-loss finalization passed on API29, API30 and API36 emulators. Those results predate the audio follow-up. The current audio diff is intentionally uncompiled/unverified until the Milestone 9 test batch. Physical Reaction Studio acceptance remains open. Full evidence and caveats are in [MILESTONE_5_PROGRESS.md](MILESTONE_5_PROGRESS.md).
+The neon beta2 foundation and the Milestone 5 Reaction Studio implementation are in place. Screen and screen-plus-front-camera PiP/split use fresh consent and typed capability gates; optional microphone/internal playback audio now uses separate synchronized tracks, with all requested-source readiness and camera-loss finalization. Milestone 6 SOS Quick Record now reuses the rear-camera path with journaled SOS metadata. The earlier accumulated batch passed 178 JVM tests, build/AndroidTest APK assembly and lint (0 errors/27 warnings); native combined-layout capture and camera-loss finalization passed on API29, API30 and API36 emulators. Those results predate the audio and SOS follow-ups. The current changes are intentionally uncompiled/unverified until the Milestone 9 test batch. Physical Reaction Studio/SOS acceptance remains open. See [MILESTONE_5_PROGRESS.md](MILESTONE_5_PROGRESS.md) and [MILESTONE_6_PROGRESS.md](MILESTONE_6_PROGRESS.md).
 
 ### Current state and sequencing
 
@@ -75,6 +75,8 @@ Exit criteria:
 Implementation follow-up before premium: opt-in microphone commentary and policy-permitted playback audio are encoded into separately synchronized tracks with truthful readiness/finalization checks and visible capability/permission states. Mixing is deferred to Milestone 9. Maintain a silent capture fallback when audio is not selected. Do not claim universal internal-audio support.
 
 ## Milestone 6 — SOS Mode
+
+Implementation status: the explicit Quick Record UI and session/journal/library SOS metadata are in source; verification and device acceptance are deferred to the accumulated batch.
 
 Goal: make SOS a fast, reliable, free quick-recording workflow.
 

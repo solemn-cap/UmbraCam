@@ -198,13 +198,14 @@ fun SuiteWelcome(onDone: () -> Unit) {
 }
 
 @Composable
-fun SuiteSosPreview() {
+fun SuiteSosPreview(onQuickRecord: () -> Unit = {}) {
     Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(24.dp)) {
         Box(Modifier.padding(top=24.dp).size(160.dp).background(Brush.radialGradient(listOf(Color(0xFFB81548).copy(alpha=.4f),Color.Transparent))),contentAlignment=Alignment.Center) {
             CompositionLocalProvider(LocalContentColor provides Color(0xFFFF6480)) { SuiteIcon(R.drawable.ic_suite_shield,modifier=Modifier.size(112.dp)) }
         }
         Text(stringResource(R.string.sos_title),style=MaterialTheme.typography.headlineMedium)
-        NeonPanel { Text(stringResource(R.string.placeholder_notice),style=MaterialTheme.typography.titleMedium); Text(stringResource(R.string.sos_preview)) }
+        NeonPanel { Text(stringResource(R.string.sos_title),style=MaterialTheme.typography.titleMedium); Text(stringResource(R.string.sos_preview)) }
+        NeonButton(stringResource(R.string.sos_quick_record), onQuickRecord, modifier=Modifier.fillMaxWidth())
         Text(stringResource(R.string.suite_sos_honest),style=MaterialTheme.typography.bodySmall,textAlign=TextAlign.Center,color=MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

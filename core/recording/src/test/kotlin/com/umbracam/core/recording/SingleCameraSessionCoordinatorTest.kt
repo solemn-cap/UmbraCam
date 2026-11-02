@@ -14,6 +14,20 @@ class SingleCameraSessionCoordinatorTest {
         assertTrue(coordinator.session.value!!.availableSources.isEmpty())
     }
 
+    @Test fun sosKindIsRetainedThroughStartAndFinalization() {
+        assertTrue(coordinator.begin("sos-one", RecordingRequest(setOf(CaptureSource.REAR_CAMERA)), kind = RecordingKind.SOS))
+        coordinator.started("sos-one", setOf(CaptureSource.REAR_CAMERA))
+        assertEquals(RecordingKind.SOS, coordinator.session.value?.kind)
+        coordinator.stop("sos-one")
+        coordinator.saved("sos-one", SavedSegment("sos.mp4", 1_000))
+        assertEquals(RecordingKind.SOS, coordinator.session.value?.kind)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun sosCannotRequestFrontCameraOrMicrophone() {
+        coordinator.begin("sos-bad", request, kind = RecordingKind.SOS)
+    }
+
     @Test fun missingMicrophoneNeverReportsRecording() {
         coordinator.begin("one", request)
         coordinator.started("one", setOf(CaptureSource.REAR_CAMERA))

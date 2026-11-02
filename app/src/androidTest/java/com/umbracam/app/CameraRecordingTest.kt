@@ -40,6 +40,29 @@ import java.io.File
  */
 @RunWith(AndroidJUnit4::class)
 class CameraRecordingTest {
+    @Test fun sosQuickRecordStartsRearCameraAndPublishesSosMetadata() {
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        automation.grantRuntimePermission("com.umbracam.app", Manifest.permission.CAMERA)
+        if (Build.VERSION.SDK_INT >= 33) automation.grantRuntimePermission("com.umbracam.app", Manifest.permission.POST_NOTIFICATIONS)
+        compose.runOnIdle { model = ViewModelProvider(compose.activity)[CameraStudioViewModel::class.java] }
+        compose.onNodeWithTag("home-${Destination.SOS.route}").performScrollTo().performClick()
+        compose.onNodeWithText(compose.activity.getString(R.string.sos_quick_record)).performScrollTo().performClick()
+        compose.waitUntil(60_000) { model.session.value?.state == RecordingState.RECORDING && model.ui.value.durationMillis >= 1_500 }
+        assertEquals(com.umbracam.core.recording.RecordingKind.SOS, model.session.value?.kind)
+        assertEquals(com.umbracam.app.camera.CameraLens.REAR, model.ui.value.lens)
+        assertFalse("SOS Quick Record defaults to microphone off", model.ui.value.audioEnabled)
+        compose.runOnIdle { model.stop() }
+        val file = awaitSavedFile()
+        verifyDecodableFrameAndTracks(file, false, "sos-quick-record")
+        val journal = com.umbracam.app.camera.RecordingSessionJournal(File(compose.activity.noBackupFilesDir, "camera/sessions"))
+        assertTrue(journal.sosRecordingIds().contains(file.name))
+        val entry = com.umbracam.app.library.RecordingCatalog(
+            mapOf("camera" to File(compose.activity.noBackupFilesDir, "camera")),
+            com.umbracam.app.camera.AndroidVideoInspector(), journal::sosRecordingIds,
+        ).list().first { it.name == file.name }
+        assertEquals("sos", entry.kind)
+    }
+
     @Test fun emulatorThermalStopFinalizesCameraAndReleasesPreview() {
         assumeTrue(Build.HARDWARE in setOf("ranchu", "goldfish") && InstrumentationRegistry.getArguments().getString("thermalAcceptance") == "true")
         shell("cmd thermalservice override-status 0")

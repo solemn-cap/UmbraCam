@@ -20,6 +20,10 @@ Service.onCreate promotes pending ownership even if immediate Stop canceled acqu
 
 Accepted capture can continue across Home, navigation and recreation. Unaccepted pending starts are canceled on visible-owner loss. Source errors, permission changes and disabled notification access stop capture. Recoverable terminal interruption permits explicit visible Resume. Process death never restarts capture. Latest device evidence is in PHASE_2_REPORT.md.
 
+## SOS Quick Record
+
+The SOS screen issues an explicit Quick Record request to Camera Studio. CameraStudioViewModel asks the application-owned CameraRecordingController to select single rear-camera/no-microphone settings, waits for camera readiness and permissions, then calls the same recording start path with `RecordingKind.SOS`. It does not create a second capture engine or bypass the non-sticky typed service. The kind is serialized in camera journal version 3; versions 1/2 remain readable. RecordingsCatalog maps only completed IDs from SOS journal entries to an SOS label. Recovery retains the kind but still requires visible user action and the existing source checks. No alert, telephony, emergency-service or premium entitlement path exists. This feature code is not yet compiled or verified.
+
 ## Private storage and reconciliation
 RecordingFileStore reserves pending MP4 after a 32 MiB free-space preflight. AndroidVideoInspector checks positive dimensions/duration and audio metadata. Same-filesystem atomic move publishes into no_backup/camera/recordings. Rejected output goes to quarantine; failed moves leave unpublished staging files. This is structural validation, not continuous playback certification.
 

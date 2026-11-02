@@ -6,7 +6,8 @@ import java.io.InputStream
 import java.util.UUID
 
 data class CatalogRecording(val key: String, val source: String, val name: String,
-    val modifiedMillis: Long, val bytes: Long, val durationMillis: Long?, val readable: Boolean)
+    val modifiedMillis: Long, val bytes: Long, val durationMillis: Long?, val readable: Boolean,
+    val kind: String = "standard")
 
 /** Filter completed catalog entries without changing their newest-first order. */
 fun filterRecordings(entries: List<CatalogRecording>, source: String, query: String,
@@ -17,13 +18,16 @@ fun filterRecordings(entries: List<CatalogRecording>, source: String, query: Str
 }
 
 /** Only completed UUID MP4s in the two explicit roots. Never exposes pending/quarantined files. */
-class RecordingCatalog(private val roots: Map<String, File>, private val inspector: VideoInspector) {
+class RecordingCatalog(private val roots: Map<String, File>, private val inspector: VideoInspector,
+    private val sosRecordingIds: () -> Set<String> = { emptySet() }) {
     fun list(): List<CatalogRecording> = roots.flatMap { (source, root) ->
+        val sosIds = if (source == "camera") sosRecordingIds() else emptySet()
         File(root, "recordings").listFiles().orEmpty().mapNotNull { file ->
             val key = "$source/${file.name}"
             val resolved = runCatching { resolve(key) }.getOrNull() ?: return@mapNotNull null
             val video = runCatching { inspector.inspect(resolved) }.getOrNull()
-            CatalogRecording(key, source, file.name, resolved.lastModified(), resolved.length(), video?.durationMillis, video != null)
+            CatalogRecording(key, source, file.name, resolved.lastModified(), resolved.length(), video?.durationMillis, video != null,
+                if (file.name in sosIds) "sos" else "standard")
         }
     }.sortedWith(compareByDescending<CatalogRecording> { it.modifiedMillis }.thenBy { it.key })
 

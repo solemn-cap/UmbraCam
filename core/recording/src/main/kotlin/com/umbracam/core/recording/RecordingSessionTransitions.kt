@@ -13,10 +13,13 @@ internal class RecordingSessionTransitions(private val validateRequest: (Recordi
     private var finalizingAttempt: String? = null
     val isBusy: Boolean get() = session.value?.state in busyStates
 
-    fun begin(id: String, request: RecordingRequest, attemptId: String = id): Boolean {
+    fun begin(id: String, request: RecordingRequest, attemptId: String = id, kind: RecordingKind = RecordingKind.STANDARD): Boolean {
         if (isBusy) return false
         validateRequest(request)
-        mutableSession.value = RecordingSession(id, request.copy(requiredSources = request.requiredSources.toSet()), RecordingState.PREPARING, attemptId = attemptId)
+        require(kind != RecordingKind.SOS || request.requiredSources == setOf(CaptureSource.REAR_CAMERA)) {
+            "SOS recording uses the single rear camera without microphone input"
+        }
+        mutableSession.value = RecordingSession(id, request.copy(requiredSources = request.requiredSources.toSet()), RecordingState.PREPARING, attemptId = attemptId, kind = kind)
         finalizingAttempt = null
         return true
     }

@@ -6,6 +6,8 @@
 
 The current engineering build is UmbraCam `0.6.1-beta2` (version code 7), package `com.umbracam.app`, minimum Android 10/API29. Camera Studio supports a user-started front or rear recording, with an optional microphone. Reaction Studio supports screen-only recording after Android's consent dialog and silent screen-plus-front-camera composition in PiP or split where the device reports support. Completed clips can be played in the app and explicitly exported or deleted.
 
+The beta2 APK predates the current source work: its Reaction Studio audio and SOS Quick Record remain unavailable. Do not infer that new source features are in a distributed artifact; any updated APK requires the accumulated Milestone 5–9 verification and a fresh artifact review.
+
 The current APK is a debug-signed engineering build. Give testers the same reviewed APK; later updates must use the same signing key. Do not ask a tester to uninstall an earlier build or clear app storage to resolve an install/update problem: uninstalling removes app-private recordings. The application ID is provisional. Do not distribute through Play or describe this as a release-signed build.
 
 ## Before the first recording

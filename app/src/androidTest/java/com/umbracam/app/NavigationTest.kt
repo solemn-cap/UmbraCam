@@ -29,10 +29,12 @@ class NavigationTest {
         java.io.File(instrument.targetContext.getExternalFilesDir(null), "phase3-" + name + ".png").outputStream().use { instrument.uiAutomation.takeScreenshot().compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
     }
 
-    @Test fun sosPreviewExplainsItsLimits() {
+    @Test fun sosScreenExplainsQuickRecordAndLimits() {
         capture("home")
         compose.onNodeWithText(compose.activity.getString(R.string.sos_title)).performScrollTo().performClick()
         compose.onNodeWithText(compose.activity.getString(R.string.sos_preview)).assertIsDisplayed()
+        compose.onNodeWithText(compose.activity.getString(R.string.sos_quick_record)).assertIsDisplayed()
+        compose.onNodeWithText(compose.activity.getString(R.string.suite_sos_honest)).assertIsDisplayed()
         capture("sos")
     }
 

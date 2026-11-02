@@ -24,13 +24,15 @@ class RecordingSessionJournal(private val directory: File) {
     fun write(session: RecordingSession, dual: DualRecordingSpec?, diagnostics: List<RecordingErrorCode> = emptyList()) {
         UUID.fromString(session.id)
         require(session.completedSegments.size <= 10_000 && diagnostics.size <= 16)
+        require(session.kind != RecordingKind.SOS || session.request.requiredSources == setOf(CaptureSource.REAR_CAMERA))
         if (dual == null) {
             require(session.request.requiredSources.count { it in setOf(CaptureSource.FRONT_CAMERA, CaptureSource.REAR_CAMERA) } == 1)
             require(session.request.requiredSources.all { it in setOf(CaptureSource.FRONT_CAMERA, CaptureSource.REAR_CAMERA, CaptureSource.MICROPHONE) })
         } else require(session.request.requiredSources == dual.requiredSources)
         if (!directory.isDirectory && !directory.mkdirs()) throw IOException("Session metadata unavailable")
         val data = Properties().apply {
-            setProperty("version", if (dual == null) "1" else "2")
+            setProperty("version", if (session.kind == RecordingKind.SOS) "3" else if (dual == null) "1" else "2")
+            if (session.kind == RecordingKind.SOS) setProperty("kind", RecordingKind.SOS.name)
             dual?.let {
                 setProperty("mode", "dual")
                 setProperty("front", it.pair.front.id); setProperty("rear", it.pair.rear.id)
@@ -90,10 +92,12 @@ class RecordingSessionJournal(private val directory: File) {
         require(file.length() <= 1_048_576)
         val data = Properties().also { properties -> file.inputStream().use(properties::load) }
         val version = data.getProperty("version")
-        require(version in setOf("1", "2"))
+        require(version in setOf("1", "2", "3"))
         val id = data.getProperty("id").also { UUID.fromString(it); require(file.name == "$it.properties") }
         val sources = data.getProperty("sources").split(',').map { CaptureSource.valueOf(it) }.toSet()
-        val dual = if (version == "2") {
+        if (version == "3") require(data.getProperty("mode") == null || data.getProperty("mode") == "dual")
+        val isDual = version == "2" || data.getProperty("mode") == "dual"
+        val dual = if (isDual) {
             require(data.getProperty("mode") == "dual" && data.getProperty("mirror") == "COMPOSED_PREVIEW")
             DualRecordingSpec(
                 DualCameraPair(CameraDescriptor(data.getProperty("front"), CameraFacing.FRONT), CameraDescriptor(data.getProperty("rear"), CameraFacing.REAR)),
@@ -110,7 +114,7 @@ class RecordingSessionJournal(private val directory: File) {
             require(sources.all { it in setOf(CaptureSource.FRONT_CAMERA, CaptureSource.REAR_CAMERA, CaptureSource.MICROPHONE) })
             null
         }
-        val diagnostics = if (version == "2") data.getProperty("diagnostics", "").split(',').filter { it.isNotEmpty() }
+        val diagnostics = if (isDual) data.getProperty("diagnostics", "").split(',').filter { it.isNotEmpty() }
             .also { require(it.size <= 16) }.map { RecordingErrorCode.valueOf(it) }.distinct() else emptyList()
         val count = data.getProperty("segments").toInt().also { require(it in 0..10_000) }
         val segments = (0 until count).map {
@@ -123,7 +127,16 @@ class RecordingSessionJournal(private val directory: File) {
             completedSegments = segments,
             error = data.getProperty("error")?.let { RecordingError(RecordingErrorCode.valueOf(it), false) },
             attemptId = data.getProperty("attempt"),
+            kind = if (version == "3") RecordingKind.valueOf(data.getProperty("kind")) else RecordingKind.STANDARD,
         )
+        require(session.kind != RecordingKind.SOS || session.request.requiredSources == setOf(CaptureSource.REAR_CAMERA))
         Entry(session, dual, diagnostics)
     }.getOrNull()
+
+    /** IDs are read from bounded private journals; no permission or capture state is restored. */
+    fun sosRecordingIds(): Set<String> = directory.listFiles().orEmpty().asSequence()
+        .filter { it.isFile && it.extension == "properties" }
+        .mapNotNull { readEntry(it)?.takeIf { entry -> entry.session.kind == RecordingKind.SOS } }
+        .flatMap { it.session.completedSegments.asSequence() }
+        .map { it.storageId }.toSet()
 }

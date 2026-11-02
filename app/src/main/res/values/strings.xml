@@ -7,7 +7,7 @@
     <string name="suite_screen_only">Screen only · silent</string>
     <string name="suite_camera_detail">Front, rear or both cameras</string>
     <string name="suite_screen_detail">Whole-screen recording. Silent.</string>
-    <string name="suite_sos_detail">Preview · not available yet</string>
+    <string name="suite_sos_detail">Quick Record with camera and Stop controls</string>
     <string name="suite_recordings_detail">Play, export and manage videos</string>
     <string name="suite_recording">Recording</string>
     <string name="suite_recording_hint">Camera, quality and layout</string>
@@ -35,7 +35,7 @@
     <string name="suite_enable">Enable</string>
     <string name="suite_continue">Continue</string>
     <string name="suite_consent_each_time">Screen recording asks for Android consent each time you start.</string>
-    <string name="suite_sos_honest">This preview does not start recording, send alerts or contact emergency services.</string>
+    <string name="suite_sos_honest">SOS Mode starts a local camera recording after permission and notification checks. It does not send alerts or contact emergency services.</string>
     <string name="suite_options">Recording options</string>
     <string name="suite_all">All</string>
     <string name="suite_search">Search recordings</string>
@@ -55,7 +55,7 @@
     <string name="sos_description">Quick-access recording for urgent moments.</string>
     <string name="vault_title">Recordings</string>
     <string name="vault_description">Play, export or delete your saved videos.</string>
-    <string name="foundation_notice">Record camera footage or your screen, then find your videos in Recordings. Dual camera support varies by device. SOS Mode is a preview.</string>
+    <string name="foundation_notice">Record camera footage or your screen, then find your videos in Recordings. Dual camera support varies by device. SOS Mode offers quick local recording.</string>
     <string name="placeholder_notice">Planned feature</string>
     <string name="placeholder_details">This section is a preview. It cannot record, save, encrypt, or protect recordings yet.</string>
     <string name="settings_details">The neon dark theme uses purple accents and clear recording controls. Permissions are requested when needed. Screen capture asks for consent each time. Private recordings are not encrypted.</string>
@@ -83,6 +83,8 @@
     <string name="recording_idle">Not recording</string>
     <string name="recording_preparing">Preparing recording…</string>
     <string name="recording_active">Recording</string>
+    <string name="sos_recording_active">SOS recording active</string>
+    <string name="sos_preparing">Preparing SOS Quick Record…</string>
     <string name="recording_interrupted">Recording interrupted</string>
     <string name="recording_stopping">Finalizing video…</string>
     <string name="recording_saved">Video saved locally</string>
@@ -112,7 +114,10 @@
     <string name="error_no_data">Stopped before usable video was captured. No video was saved.</string>
     <string name="error_interrupted">A required capture source or recording service was interrupted. Recording is stopping.</string>
     <string name="error_saved_partial">A finalized video was preserved after an interruption. Its audio or ending may be incomplete.</string>
-    <string name="sos_preview">This preview cannot record or send alerts. SOS Mode does not contact emergency services.</string>
+    <string name="sos_preview">Quick Record starts a rear-camera video after the required permissions are granted. The recording stays in your private Recordings library.</string>
+    <string name="sos_quick_record">Quick Record</string>
+    <string name="sos_quick_record_detail">Starts a standard rear-camera recording with microphone off. Android permission, notification, thermal and storage checks still apply.</string>
+    <string name="library_sos_kind">SOS recording</string>
     <string name="back">Back</string>
     <string name="camera_support_title">Camera support</string>
     <string name="camera_support_intro">Check whether Android advertises cameras that can run together. This check does not open a camera or microphone.</string>

@@ -28,13 +28,14 @@ internal class CameraSessionCoordinator(clock: () -> Long = { System.nanoTime() 
         selected = spec
         return true
     }
-    fun begin(id: String, request: RecordingRequest, attemptId: String): Boolean {
+    fun begin(id: String, request: RecordingRequest, attemptId: String, kind: RecordingKind = RecordingKind.STANDARD): Boolean {
         if (isBusy) return false
         val spec = selected
+        require(kind == RecordingKind.STANDARD || spec == null) { "SOS uses the standard single-camera path" }
         val accepted = if (spec != null) {
             require(request.requiredSources == spec.requiredSources)
             dual.begin(id, spec, attemptId) != null
-        } else single.begin(id, request, attemptId)
+        } else single.begin(id, request, attemptId, kind)
         if (accepted) { activeDual = spec != null; restoredDescriptor = null; publish() }
         return accepted
     }

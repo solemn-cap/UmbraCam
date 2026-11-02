@@ -3,6 +3,7 @@ package com.umbracam.core.recording
 import kotlinx.coroutines.flow.StateFlow
 
 enum class RecordingState { IDLE, PREPARING, RECORDING, INTERRUPTED, RECOVERING, STOPPING, SAVED, FAILED }
+enum class RecordingKind { STANDARD, SOS }
 enum class CaptureSource { FRONT_CAMERA, REAR_CAMERA, SCREEN, MICROPHONE, INTERNAL_AUDIO }
 enum class RecordingErrorCode { PERMISSION_DENIED, SOURCE_UNAVAILABLE, CONSENT_REVOKED, STORAGE_FULL, ENCODER_FAILED, FINALIZATION_FAILED, PREVIOUS_SESSION_INTERRUPTED, PERSISTENCE_FAILED, THERMAL_LIMIT, UNKNOWN }
 
@@ -29,10 +30,14 @@ data class RecordingSession(
     val completedSegments: List<SavedSegment> = emptyList(),
     val error: RecordingError? = null,
     val attemptId: String = id,
+    val kind: RecordingKind = RecordingKind.STANDARD,
 ) {
     init {
         require(id.isNotBlank())
         require(attemptId.isNotBlank())
+        require(kind != RecordingKind.SOS || request.requiredSources == setOf(CaptureSource.REAR_CAMERA)) {
+            "SOS recordings require only the rear camera"
+        }
         require(state != RecordingState.RECORDING || availableSources.containsAll(request.requiredSources)) {
             "Recording requires every requested source to be available"
         }

@@ -92,3 +92,7 @@ Separate hardware presence from capture support. ReactionCapability reports supp
 
 Implement combined Reaction Studio output with platform Camera2 + MediaProjection external textures and GLES into the existing AVC encoder surface. Support PiP and split, use CAMERA permission only at Start and point-of-open, and include camera in the media-source readiness gate before RECORDING. Use the typed camera foreground-service ownership only for combined sessions. Camera loss interrupts and finalizes valid partial output; the source requirements are journaled without any consent or authorization. No new dependency is required. Emulator results are bounded to the tested API29/API36 AVDs; API30, physical compatibility, sustained performance and all audio capture remain unverified/unavailable.
 
+## ADR026 — SOS Quick Record reuses the standard camera owner (2026-11-02)
+
+Implement SOS as an explicit UI action routed through the existing Camera Studio/controller/service/storage lifecycle. Select the single rear camera and microphone-off defaults; require the existing runtime permission, foreground notification, readiness, thermal and storage gates. Persist `RecordingKind.SOS` in journal version 3 and map completed IDs to an SOS library label; keep v1/v2 readable. Do not add emergency-service contact, alerting, automatic starts, or a parallel capture service. SOS is part of free core recording and does not use premium entitlement checks. Source implementation awaits accumulated verification; see [Milestone 6 progress](MILESTONE_6_PROGRESS.md).
+

@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.umbracam.app.UmbraCamApplication
 import com.umbracam.app.camera.AndroidVideoInspector
+import com.umbracam.app.camera.RecordingSessionJournal
 import com.umbracam.core.recording.SingleCameraSessionCoordinator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,8 +22,9 @@ data class LibraryState(val loading: Boolean = true, val working: Boolean = fals
 
 class RecordingsViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as UmbraCamApplication
+    private val cameraJournal = RecordingSessionJournal(File(app.noBackupFilesDir, "camera/sessions"))
     private val catalog = RecordingCatalog(mapOf("camera" to File(app.noBackupFilesDir, "camera"),
-        "screen" to File(app.noBackupFilesDir, "screen")), AndroidVideoInspector())
+        "screen" to File(app.noBackupFilesDir, "screen")), AndroidVideoInspector(), cameraJournal::sosRecordingIds)
     private val mutableState = MutableStateFlow(LibraryState())
     val state = mutableState.asStateFlow()
     private var exportKey: String? = null

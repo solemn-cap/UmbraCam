@@ -8,7 +8,7 @@ class SingleCameraSessionCoordinator {
     }
     val session = transitions.session
     val isBusy: Boolean get() = transitions.isBusy
-    fun begin(id: String, request: RecordingRequest, attemptId: String = id) = transitions.begin(id, request, attemptId)
+    fun begin(id: String, request: RecordingRequest, attemptId: String = id, kind: RecordingKind = RecordingKind.STANDARD) = transitions.begin(id, request, attemptId, kind)
     fun recover(attemptId: String) = transitions.recover(attemptId)
     fun restoreInterrupted(previous: RecordingSession) = transitions.restoreInterrupted(previous)
     fun started(id: String, available: Set<CaptureSource>) = transitions.started(id, available)

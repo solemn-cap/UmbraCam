@@ -18,6 +18,8 @@ The prior Reaction Studio camera/screen logic batch passed 178 JVM tests, debug 
 
 The user wants the premium feature set implemented before the next accumulated testing pass. Add meaningful tests alongside implementation but do not execute the suite at each intermediate feature batch. Build Reaction Studio audio/synchronization, SOS, the encrypted Private Vault, Pro creator foundations, and advanced creator tools first; then run the full host/emulator/physical acceptance batch once before inviting testers. AI/cloud services remain separately authorized. The user has also confirmed existing phone recordings may be discarded; document prior loss honestly, and do not treat it as acceptance evidence.
 
+Milestone 6 SOS Quick Record is implemented in source and awaiting verification. It reuses the existing rear-camera, permission, notification, foreground-service, thermal, storage and publication path, and records an SOS kind in journal v3 for library labeling. See [MILESTONE_6_PROGRESS.md](MILESTONE_6_PROGRESS.md). Do not run tests/builds until Milestone 9 is complete.
+
 User explicitly approved Phase 1 on 2026-10-30 after the approval requirement was explained. Phase 1 implementation is present. Eleven distinct runtime checks now pass on physical SM-S9080 / API 36 and an API 29 emulator, including navigation/recreation, single-camera/media checks and foreground stop behavior. Broader physical failure/performance/accessibility acceptance is still pending; see DEVICE_VALIDATION.md. That historical evidence does not validate Phase 2 service continuation. Phase 2 is now approved and under verification; dual cameras and screen capture remain deferred.
 
 | Milestone | Scope | Acceptance criteria |

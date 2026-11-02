@@ -86,6 +86,7 @@ class CameraRecordingController(application: Application) {
     private var preview: Preview? = null
     private var capture: VideoCapture<Recorder>? = null
     private var camera: Camera? = null
+    private var boundLens: CameraLens? = null
     private var cameraObserver: Observer<CameraState>? = null
     private var recording: Recording? = null
     private var generation = 0L
@@ -195,6 +196,29 @@ class CameraRecordingController(application: Application) {
 
     fun retryPreview() { if (!coordinator.isBusy && !ui.value.ready) bind(force = true) }
 
+    /** Select the predictable, low-setup single rear-camera path for an explicitly requested SOS start. */
+    fun prepareSosMode(): Boolean {
+        if (ui.value.initializing || coordinator.isBusy || ui.value.serviceRunning) {
+            mutableUi.update { it.copy(issue = CameraIssue.PREPARE) }
+            return false
+        }
+        if (coordinator.selected != null && !coordinator.select(null)) return false
+        mutableUi.update { it.copy(dualSpecification = null, lens = CameraLens.REAR, quality = null, ready = false,
+            audioEnabled = false, diagnostics = emptyList()) }
+        bind(force = true)
+        return true
+    }
+
+    fun canStartSos(): Boolean = !coordinator.isBusy && coordinator.selected == null && boundLens == CameraLens.REAR &&
+        camera != null && ui.value.ready && ui.value.lens == CameraLens.REAR && !ui.value.audioEnabled
+
+    fun startSos() {
+        if (!canStartSos()) return
+        requestStart(recovery = false, kind = RecordingKind.SOS)
+    }
+
+    fun quickStartUnavailable() { mutableUi.update { it.copy(issue = CameraIssue.PREPARE) } }
+
     /** Explicit mode/settings selection; accepted capture attempts keep their immutable specification. */
     fun selectDual(spec: DualRecordingSpec?): Boolean {
         if (ui.value.initializing || ui.value.serviceRunning || coordinator.isBusy) return false
@@ -218,6 +242,7 @@ class CameraRecordingController(application: Application) {
             if (dualBinding === binding) attempt?.let { coordinator.progress(it, id, frame); dualOutcome() }
         })
         dualBinding = binding
+        boundLens = null
         try {
             binding.bind(previewView?.get()?.surfaceProvider, serviceActive || foregroundUi)
             preview = binding.preview
@@ -294,6 +319,7 @@ class CameraRecordingController(application: Application) {
                 capture = newCapture
                 val newCamera = cameraProvider.bindToLifecycle(captureLifecycle, lens.selector, newPreview, newCapture)
                 camera = newCamera
+                boundLens = lens
                 boundOwner = targetOwner
                 boundView = WeakReference(view)
                 mutableUi.update { it.copy(loading = false, lenses = lenses, lens = lens, qualities = ordered, quality = quality, issue = null) }
@@ -318,7 +344,7 @@ class CameraRecordingController(application: Application) {
     fun start() = requestStart(recovery = false)
     fun recover() = requestStart(recovery = true)
 
-    private fun requestStart(recovery: Boolean) {
+    private fun requestStart(recovery: Boolean, kind: RecordingKind = RecordingKind.STANDARD) {
         if (!CaptureThermalPolicy.canStart(thermals.refresh())) {
             mutableUi.update { it.copy(issue = CameraIssue.THERMAL) }; return
         }
@@ -337,7 +363,7 @@ class CameraRecordingController(application: Application) {
             return
         }
         val attempt = UUID.randomUUID().toString()
-        val accepted = if (recovery) coordinator.recover(attempt) else coordinator.begin(UUID.randomUUID().toString(), RecordingRequest(sources), attempt)
+        val accepted = if (recovery) coordinator.recover(attempt) else coordinator.begin(UUID.randomUUID().toString(), RecordingRequest(sources), attempt, kind)
         if (!accepted) return
         if (!hasPermission(Manifest.permission.CAMERA) || (CaptureSource.MICROPHONE in sources && !hasPermission(Manifest.permission.RECORD_AUDIO))) {
             coordinator.failed(attempt, RecordingErrorCode.PERMISSION_DENIED)
@@ -642,6 +668,7 @@ class CameraRecordingController(application: Application) {
         val owned = listOfNotNull(preview, capture)
         if (owned.isNotEmpty()) provider?.unbind(*owned.toTypedArray())
         camera = null
+        boundLens = null
         preview = null
         capture = null
         boundOwner = null

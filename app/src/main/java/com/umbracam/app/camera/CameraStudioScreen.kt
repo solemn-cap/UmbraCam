@@ -38,6 +38,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
 import com.umbracam.app.R
 import com.umbracam.core.recording.RecordingState
 import com.umbracam.core.recording.CaptureThermalPolicy
@@ -46,7 +47,8 @@ import com.umbracam.core.recording.SingleCameraSessionCoordinator
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun CameraStudioScreen(viewModel: CameraStudioViewModel, onCheckCameraSupport: () -> Unit = {}, onRecordings: () -> Unit = {}) {
+fun CameraStudioScreen(viewModel: CameraStudioViewModel, onCheckCameraSupport: () -> Unit = {}, onRecordings: () -> Unit = {},
+    sosOpenRequest: Int = 0) {
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
     val ui by viewModel.ui.collectAsStateWithLifecycle()
@@ -66,14 +68,13 @@ fun CameraStudioScreen(viewModel: CameraStudioViewModel, onCheckCameraSupport: (
     var notificationGranted by remember { mutableStateOf(Build.VERSION.SDK_INT < 33 || viewModel.hasPermission(Manifest.permission.POST_NOTIFICATIONS)) }
     var resumed by remember { mutableStateOf(owner.lifecycle.currentState == Lifecycle.State.RESUMED) }
     var pendingAction by remember { mutableIntStateOf(0) }
+    var handledSosRequest by rememberSaveable { mutableIntStateOf(0) }
+    var preparedSosRequest by remember { mutableIntStateOf(0) }
     var expanded by remember { mutableStateOf(false) }
     val busy = session?.state in SingleCameraSessionCoordinator.busyStates
-    val settingsEnabled = !busy && !ui.serviceRunning && !ui.initializing && !ui.loading
+    val sosPending = pendingAction == 3
+    val settingsEnabled = !busy && !sosPending && !ui.serviceRunning && !ui.initializing && !ui.loading
     val dualAvailable = ui.dualSpecification == null || (!options.checking && ui.dualSpecification!!.pair in options.pairs)
-    val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        cameraGranted = granted
-        if (!granted) viewModel.cameraPermissionDenied()
-    }
     val microphonePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         viewModel.setMicrophone(true) // Rechecks the actual grant; denial keeps silent video available.
     }
@@ -81,11 +82,42 @@ fun CameraStudioScreen(viewModel: CameraStudioViewModel, onCheckCameraSupport: (
         notificationGranted = granted
         if (!granted) { pendingAction = 0; viewModel.notificationPermissionDenied() }
     }
-    LaunchedEffect(resumed, notificationGranted, pendingAction) {
-        if (resumed && notificationGranted && pendingAction != 0) {
+    val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        cameraGranted = granted
+        if (!granted) { if (pendingAction == 3) pendingAction = 0; viewModel.cameraPermissionDenied() }
+        else if (pendingAction == 3 && Build.VERSION.SDK_INT >= 33 && !viewModel.hasPermission(Manifest.permission.POST_NOTIFICATIONS))
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+    LaunchedEffect(sosOpenRequest) {
+        if (sosOpenRequest > handledSosRequest) {
+            handledSosRequest = sosOpenRequest // A recreation must never replay an explicit start request.
+            pendingAction = 3
+        }
+    }
+    LaunchedEffect(sosOpenRequest, pendingAction, ui.initializing) {
+        if (sosOpenRequest > 0 && pendingAction == 3 && preparedSosRequest != sosOpenRequest && !ui.initializing) {
+            preparedSosRequest = sosOpenRequest
+            if (!viewModel.prepareSosMode()) pendingAction = 0
+            else if (!viewModel.hasPermission(Manifest.permission.CAMERA)) cameraPermission.launch(Manifest.permission.CAMERA)
+            else if (Build.VERSION.SDK_INT >= 33 && !viewModel.hasPermission(Manifest.permission.POST_NOTIFICATIONS))
+                notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+    LaunchedEffect(sosOpenRequest, pendingAction) {
+        if (sosOpenRequest > 0 && pendingAction == 3) {
+            delay(30_000)
+            if (pendingAction == 3) { pendingAction = 0; viewModel.quickStartUnavailable() }
+        }
+    }
+    LaunchedEffect(resumed, cameraGranted, notificationGranted, ui.ready, ui.loading, ui.initializing, pendingAction) {
+        if (resumed && cameraGranted && notificationGranted && ui.ready && !ui.loading && !ui.initializing && pendingAction != 0) {
             val action = pendingAction
-            pendingAction = 0
-            if (action == 2) viewModel.recover() else viewModel.start()
+            when (action) {
+                2 -> { pendingAction = 0; viewModel.recover() }
+                3 -> if (viewModel.canStartSos()) { pendingAction = 0; viewModel.startSos() }
+                    else viewModel.prepareSosMode()
+                else -> { pendingAction = 0; viewModel.start() }
+            }
         }
     }
     val requestRecording: (Boolean) -> Unit = { recovery ->
@@ -164,13 +196,13 @@ fun CameraStudioScreen(viewModel: CameraStudioViewModel, onCheckCameraSupport: (
         }
         Text(stringResource(when(session?.state) {
             RecordingState.PREPARING -> R.string.recording_preparing
-            RecordingState.RECORDING -> R.string.recording_active
+            RecordingState.RECORDING -> if (session?.kind == com.umbracam.core.recording.RecordingKind.SOS) R.string.sos_recording_active else R.string.recording_active
             RecordingState.RECOVERING -> R.string.recording_recovering
             RecordingState.INTERRUPTED -> R.string.recording_interrupted
             RecordingState.STOPPING -> R.string.recording_stopping
             RecordingState.SAVED -> R.string.recording_saved
             RecordingState.FAILED -> R.string.recording_failed
-            else -> R.string.recording_idle
+            else -> if (sosPending) R.string.sos_preparing else R.string.recording_idle
         }),Modifier.semantics { liveRegion=LiveRegionMode.Polite },style=MaterialTheme.typography.titleMedium)
         if(session?.state==RecordingState.RECORDING) Text(stringResource(R.string.suite_timer,ui.durationMillis/3_600_000,ui.durationMillis/60_000%60,ui.durationMillis/1000%60),
             Modifier.fillMaxWidth(),style=MaterialTheme.typography.displaySmall,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
@@ -180,7 +212,7 @@ fun CameraStudioScreen(viewModel: CameraStudioViewModel, onCheckCameraSupport: (
             IconButton(onClick=onRecordings) { SuiteIcon(R.drawable.ic_suite_folder,stringResource(R.string.library_open)) }
             RecordAction(stringResource(if(busy) R.string.camera_stop else R.string.camera_record),busy,
                 if(busy) session?.state in setOf(RecordingState.PREPARING,RecordingState.RECOVERING,RecordingState.RECORDING)
-                else cameraGranted && ui.ready && dualAvailable && !ui.initializing && !ui.serviceRunning) {
+                else !sosPending && cameraGranted && ui.ready && dualAvailable && !ui.initializing && !ui.serviceRunning) {
                 if(busy) viewModel.stop() else requestRecording(false)
             }
             IconButton(onClick={viewModel.chooseLens(if(ui.lens==CameraLens.FRONT) CameraLens.REAR else CameraLens.FRONT)},

@@ -74,6 +74,18 @@ class RecordingSessionJournalTest {
         assertEquals(1, File(temporary.root, "camera/sessions").listFiles()!!.count { it.extension == "properties" })
     }
 
+    @Test fun sosKindAndCompletedIdsSurviveJournalRoundTripAndReconciliation() {
+        val store = store()
+        val segment = store.publish(store.reserve().apply { writeText("sos-video") }).segment
+        val original = active(listOf(segment)).copy(kind = RecordingKind.SOS)
+        val journal = journal()
+        journal.write(original)
+        assertEquals(setOf(segment.storageId), journal.sosRecordingIds())
+        val restored = journal.reconcile(store)!!
+        assertEquals(RecordingKind.SOS, restored.kind)
+        assertEquals(setOf(segment.storageId), journal.sosRecordingIds())
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun sessionIdentifierCannotEscapeJournalDirectory() {
         journal().write(RecordingSession("../outside", request, RecordingState.PREPARING))
