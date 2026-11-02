@@ -9,6 +9,7 @@ enum class Destination(val route: String, @get:StringRes val title: Int, @get:St
     REACTION("reaction", R.string.reaction_title, R.string.reaction_description),
     SOS("safety", R.string.sos_title, R.string.sos_description),
     VAULT("vault", R.string.vault_title, R.string.vault_description),
+    PRO("pro", R.string.pro_title, R.string.pro_description),
     SETTINGS("settings", R.string.settings, R.string.settings_details),
     CAMERA_SUPPORT("camera_support", R.string.camera_support_title, R.string.camera_support_intro);
 

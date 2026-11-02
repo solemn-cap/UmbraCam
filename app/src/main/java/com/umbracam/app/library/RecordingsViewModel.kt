@@ -19,11 +19,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
-enum class LibraryMessage { EXPORTED, DELETED, FAILED, EXPORT_FAILED, CAPTURE_BUSY, CANCELLED, PLAYBACK_FAILED }
+enum class LibraryMessage { EXPORTED, DELETED, FAILED, EXPORT_FAILED, CAPTURE_BUSY, CANCELLED, PLAYBACK_FAILED, FILTERED, FILTER_FAILED, PRO_REQUIRED, THERMAL_LIMIT }
 data class LibraryState(val loading: Boolean = true, val working: Boolean = false,
     val recordings: List<CatalogRecording> = emptyList(), val playing: String? = null, val message: LibraryMessage? = null,
     val vaultWarning: Boolean = false, val locked: Boolean = false, val biometricLockEnabled: Boolean = false,
-    val biometricAvailable: Boolean = true)
+    val biometricAvailable: Boolean = true, val filterProgress: Int? = null)
 
 class RecordingsViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as UmbraCamApplication
@@ -94,6 +94,42 @@ class RecordingsViewModel(application: Application) : AndroidViewModel(applicati
     }
     fun rename(key: String, title: String) = metadataOperation { catalog.rename(key, title) }
     fun setCategory(key: String, category: String) = metadataOperation { catalog.setCategory(key, category) }
+    fun applyFilter(key: String, filter: com.umbracam.core.recording.FilterId, intensity: Float = 1f) {
+        if (!app.entitlements.has(com.umbracam.core.recording.PremiumFeature.FILTERS_EFFECTS)) {
+            mutableState.update { it.copy(message = LibraryMessage.PRO_REQUIRED) }; return
+        }
+        if (state.value.working || state.value.locked || app.libraryOperation || app.recording.session.value?.state in SingleCameraSessionCoordinator.busyStates || app.screenRecording.isBusy) {
+            mutableState.update { it.copy(message = LibraryMessage.CAPTURE_BUSY) }; return
+        }
+        if (!com.umbracam.core.recording.CaptureThermalPolicy.canStart(app.captureThermals.refresh())) {
+            mutableState.update { it.copy(message = LibraryMessage.THERMAL_LIMIT) }; return
+        }
+        app.libraryOperation = true
+        mutableState.update { it.copy(working = true, filterProgress = 0, message = null) }
+        viewModelScope.launch {
+            try {
+                val original = state.value.recordings.firstOrNull { it.key == key } ?: error("Recording is no longer in the library")
+                val recording = catalog.resolve(key)
+                val exporter = com.umbracam.app.creator.VideoFilterExporter(app, app.vaultCodec,
+                    File(app.cacheDir, "vault-transient"), File(app.noBackupFilesDir, original.source),
+                    { !com.umbracam.core.recording.CaptureThermalPolicy.mustStop(app.captureThermals.status.value) })
+                val id = exporter.export(recording, com.umbracam.core.recording.FilterConfig(filter, intensity)) { progress ->
+                    mutableState.update { it.copy(filterProgress = progress.coerceIn(0, 100)) }
+                }
+                withContext(Dispatchers.IO) {
+                    val title = "${original.title ?: original.name.removeSuffix(".mp4")} · ${filter.name.lowercase()}".take(80)
+                    val newKey = "${original.source}/$id"
+                    catalog.rename(newKey, title)
+                    val category = original.category.ifEmpty { if (original.kind == "sos") "sos" else "" }
+                    if (category.isNotEmpty()) catalog.setCategory(newKey, category)
+                }
+                mutableState.update { it.copy(message = LibraryMessage.FILTERED) }
+            } catch (_: com.umbracam.app.creator.CreatorProcessingThermalLimit) { mutableState.update { it.copy(message = LibraryMessage.THERMAL_LIMIT) } }
+            catch (error: kotlinx.coroutines.CancellationException) { throw error }
+            catch (_: Exception) { mutableState.update { it.copy(message = LibraryMessage.FILTER_FAILED) } }
+            finally { app.libraryOperation = false; mutableState.update { it.copy(working = false, filterProgress = null) }; refresh() }
+        }
+    }
     private fun metadataOperation(action: () -> Unit) {
         if (state.value.working || state.value.locked || app.libraryOperation) return
         app.libraryOperation = true; mutableState.update { it.copy(working = true) }

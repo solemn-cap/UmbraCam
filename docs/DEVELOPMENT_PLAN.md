@@ -12,7 +12,7 @@ The prior Reaction Studio camera/screen logic batch passed 178 JVM tests, debug 
 2. Finish the host and emulator verification batch for this source revision. Physical acceptance requires a disposable handset or an explicitly backed-up test installation; it is not currently safe to reuse the daily-use phone.
 3. Prepare the engineering APK and a tester guide. The guide is staged at [CLOSED_BETA_GUIDE.md](CLOSED_BETA_GUIDE.md); the current APK remains debug-signed and the package ID provisional.
 4. Once acceptance and the APK hash are reviewed, invite a small opt-in group. No external messages have been sent; the tester list/contact method is still needed.
-5. Triage tester reports, fix release-blocking issues, then decide whether to invest in durable release signing and public-store preparation. Do not present unencrypted local recording storage, missing Reaction audio, or SOS/Vault previews as completed features.
+5. Triage tester reports, fix release-blocking issues, then decide whether to invest in durable release signing and public-store preparation. Do not present unverified Reaction audio, SOS, vault, or creator source work as device-accepted features.
 
 ## User sequencing update — build premium scope before final testing
 

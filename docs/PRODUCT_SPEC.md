@@ -20,8 +20,9 @@ Phase 1 was explicitly approved on 2026-10-30. Camera Studio implements a user-s
 | Implemented; verification deferred | Separate synchronized microphone commentary and policy-permitted internal playback audio in Reaction Studio | Each requested source must yield a muxed sample; playback remains limited by Android version, source-app policy and content protection. Mixing is deferred to Milestone 9 |
 | Implemented in source; verification deferred | Free SOS Quick Record | Explicit action, rear camera, microphone off, standard permission/notification/thermal/storage checks, journaled kind and library label; no emergency contact or alerting |
 | Implemented; Samsung validation | User-started service continuation and explicit recovery | Short physical continuation/recovery/screen-off checks passed; broader matrix open; no automatic restart |
-| Future | Encrypted vault, biometric gate, metadata, playback, export | Not available until storage/security milestones |
-| Future | Cloud backup, contact alerts, independent tracks, creator tools | Out of scope; no backend dependencies |
+| Implemented in source; verification deferred | Encrypted vault, biometric app gate, metadata, playback/share/export | Finalized files encrypted; active staging and transient copies plaintext; device acceptance pending |
+| Implemented in source; verification deferred | Deterministic post-record filters, Pro discovery, preview teleprompter, saved Reaction layouts | Debug-only local Pro entitlement; no billing or purchase action |
+| Future | Cloud backup, contact alerts, advanced creator tracks and overlays | Out of scope; no backend dependencies |
 
 ## Recording modes
 Camera Studio: front OR rear camera and optional microphone, plus explicit Dual mode on Android 11+ when an exact front/rear pair is advertised. Dual currently records one portrait HD (720p) video, with rear main/front inset or rear above front. The selected pair is validated again at bind; unsupported devices retain Single camera. Settings freeze during capture. Emulator evidence does not certify physical dual-camera compatibility.
@@ -40,3 +41,6 @@ Camera and microphone services must obey while-in-use and background-start rules
 - [MediaProjection consent and lifecycle](https://developer.android.com/media/grow/media-projection)
 - [Audio playback capture](https://developer.android.com/media/platform/av-capture)
 - [CameraX architecture](https://developer.android.com/media/camera/camerax/architecture)
+
+## Milestone 8 Pro creator foundation
+The Pro screen reports current access and configurable price display without an enabled checkout. Debug builds grant local Pro evaluation access; release remains Free until a separately approved billing integration exists. Six deterministic filter choices export a new encrypted vault recording and preserve the selected original. The teleprompter script scrolls over the Camera Studio preview only and is not encoded into saved video. Reaction PiP/split choice is saved as a reusable preference. These additions are awaiting accumulated verification; no device support or performance claim is made.

@@ -115,7 +115,7 @@ Exit criteria:
 - Existing media survives upgrade and migration tests.
 - Exported copies are clearly identified as outside the app vault.
 
-## Milestone 8 — Premium creator foundation
+## Milestone 8 — Premium creator foundation (implementation complete; verification pending)
 
 Goal: make Pro discoverable without implementing deceptive or incomplete commerce.
 
@@ -194,4 +194,4 @@ The initial closed beta may omit Milestone 10 AI/cloud. That milestone requires 
 
 ## Approval gates
 
-The user has authorized a feature-first push through the local premium creator scope: implement Milestone 5 audio follow-up, then Milestones 6–9 without running intermediate test suites; execute the accumulated suite after Milestone 9. Physical results and acceptance claims remain pending until that final batch. The roadmap does not authorize live billing, cloud services, emergency messaging, AI processing, or production signing credentials by itself. Milestone 10 requires a separate technical/privacy/security/cost review and explicit approval.
+The user has authorized a feature-first push through the local premium creator scope: implement Milestone 5 audio follow-up, then Milestones 6–9 without running intermediate test suites; execute the accumulated suite after Milestone 9. Milestone 7 is implemented and Milestone 8 is now implemented in source; both await verification. Physical results and acceptance claims remain pending until that final batch. The roadmap does not authorize live billing, cloud services, emergency messaging, AI processing, or production signing credentials by itself. Milestone 10 requires a separate technical/privacy/security/cost review and explicit approval.

@@ -90,20 +90,21 @@ fun UmbraCamApp(cameraViewModel: CameraStudioViewModel, cameraOpenRequest: Int =
                                     if(screenRecording?.state in SingleCameraSessionCoordinator.busyStates) NeonPanel {
                                         Text(stringResource(R.string.screen_home_notice)); TextButton(onClick={open(Destination.REACTION)}) { Text(stringResource(R.string.screen_open)) }
                                     }
-                                    SuiteHome(open)
+                                    SuiteHome(open) { open(Destination.PRO) }
                                 }
-                                Destination.CAMERA -> CameraStudioScreen(cameraViewModel,{open(Destination.CAMERA_SUPPORT)},{open(Destination.VAULT)},sosOpenRequest)
+                                Destination.CAMERA -> CameraStudioScreen(cameraViewModel,{open(Destination.CAMERA_SUPPORT)},{open(Destination.VAULT)},sosOpenRequest,{open(Destination.PRO)})
                                 Destination.CAMERA_SUPPORT -> {
                                     val support by supportViewModel.state.collectAsStateWithLifecycle()
                                     CameraSupportScreen(support,supportViewModel::checkSupport) { open(Destination.CAMERA) }
                                 }
                                 Destination.REACTION -> com.umbracam.app.screen.ScreenStudioScreen(screenViewModel,onScreenStart) { open(Destination.VAULT) }
                                 Destination.VAULT -> com.umbracam.app.library.RecordingsScreen(androidx.lifecycle.viewmodel.compose.viewModel())
+                                Destination.PRO -> com.umbracam.app.creator.ProCreatorScreen(onOpenCamera={open(Destination.CAMERA)},onOpenReaction={open(Destination.REACTION)})
                                 Destination.SOS -> SuiteSosPreview(onQuickRecord = {
                                     open(Destination.CAMERA)
                                     onSosQuickRecord()
                                 })
-                                Destination.SETTINGS -> SuiteSettings({open(Destination.CAMERA)},{open(Destination.VAULT)},{open(Destination.CAMERA_SUPPORT)},{open(Destination.SOS)},{welcome=true})
+                                Destination.SETTINGS -> SuiteSettings({open(Destination.CAMERA)},{open(Destination.VAULT)},{open(Destination.CAMERA_SUPPORT)},{open(Destination.SOS)},{welcome=true},{open(Destination.PRO)})
                             }
                         }
                     }

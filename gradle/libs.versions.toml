@@ -11,6 +11,7 @@ runner = "1.7.0"
 camera = "1.5.3"
 lifecycle = "2.9.4"
 biometric = "1.1.0"
+media3 = "1.11.1"
 
 [libraries]
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
@@ -34,6 +35,8 @@ camera-view = { module = "androidx.camera:camera-view", version.ref = "camera" }
 lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
+media3-transformer = { module = "androidx.media3:media3-transformer", version.ref = "media3" }
+media3-effect = { module = "androidx.media3:media3-effect", version.ref = "media3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

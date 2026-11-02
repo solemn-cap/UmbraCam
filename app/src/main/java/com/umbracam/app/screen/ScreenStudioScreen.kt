@@ -40,7 +40,8 @@ fun ScreenStudioScreen(model: ScreenStudioViewModel, onStart: (ReactionRecording
     val context = LocalContext.current
     val reactionCapability = remember(context) { ReactionCapabilityDetector(context).read() }
     var modeName by rememberSaveable { mutableStateOf(ReactionMode.SCREEN_ONLY.name) }
-    var layoutName by rememberSaveable { mutableStateOf(ReactionLayout.PICTURE_IN_PICTURE.name) }
+    val creatorPreferences=remember(context) { context.getSharedPreferences("creator_tools",android.content.Context.MODE_PRIVATE) }
+    var layoutName by rememberSaveable { mutableStateOf(creatorPreferences.getString("reaction_layout",ReactionLayout.PICTURE_IN_PICTURE.name)!!) }
     var microphoneEnabled by rememberSaveable { mutableStateOf(false) }
     var internalAudioEnabled by rememberSaveable { mutableStateOf(false) }
     var pendingStart by remember { mutableStateOf<ReactionRecordingRequest?>(null) }
@@ -125,10 +126,10 @@ fun ScreenStudioScreen(model: ScreenStudioViewModel, onStart: (ReactionRecording
             Text(stringResource(R.string.reaction_layout_title), style = MaterialTheme.typography.titleSmall)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(selected = layout == ReactionLayout.PICTURE_IN_PICTURE,
-                    onClick = { layoutName = ReactionLayout.PICTURE_IN_PICTURE.name }, enabled = reactionCapability.supports(ReactionMode.SCREEN_AND_FRONT_CAMERA) && !busy,
+                    onClick = { layoutName = ReactionLayout.PICTURE_IN_PICTURE.name; creatorPreferences.edit().putString("reaction_layout",layoutName).apply() }, enabled = reactionCapability.supports(ReactionMode.SCREEN_AND_FRONT_CAMERA) && !busy,
                     label = { Text(stringResource(R.string.reaction_layout_pip)) }, modifier = Modifier.weight(1f).heightIn(min = 48.dp))
                 FilterChip(selected = layout == ReactionLayout.SPLIT,
-                    onClick = { layoutName = ReactionLayout.SPLIT.name }, enabled = reactionCapability.supports(ReactionMode.SCREEN_AND_FRONT_CAMERA) && !busy,
+                    onClick = { layoutName = ReactionLayout.SPLIT.name; creatorPreferences.edit().putString("reaction_layout",layoutName).apply() }, enabled = reactionCapability.supports(ReactionMode.SCREEN_AND_FRONT_CAMERA) && !busy,
                     label = { Text(stringResource(R.string.reaction_layout_split)) }, modifier = Modifier.weight(1f).heightIn(min = 48.dp))
             }
         } else if (!reactionCapability.frontCamera) {

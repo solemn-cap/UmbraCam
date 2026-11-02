@@ -47,6 +47,9 @@ fun RecordingsScreen(model: RecordingsViewModel) {
     var renameTarget by remember { mutableStateOf<CatalogRecording?>(null) }
     var renameText by remember { mutableStateOf("") }
     var categoryTarget by remember { mutableStateOf<CatalogRecording?>(null) }
+    var filterTarget by remember { mutableStateOf<CatalogRecording?>(null) }
+    var selectedFilter by remember { mutableStateOf(com.umbracam.core.recording.FilterId.WARM) }
+    var intensity by remember { mutableFloatStateOf(1f) }
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("video/mp4"),model::exportTo)
     val owner=LocalLifecycleOwner.current
     val keyboard=LocalSoftwareKeyboardController.current
@@ -114,9 +117,17 @@ fun RecordingsScreen(model: RecordingsViewModel) {
                 LibraryMessage.CAPTURE_BUSY -> R.string.library_capture_busy
                 LibraryMessage.CANCELLED -> R.string.library_cancelled
                 LibraryMessage.PLAYBACK_FAILED -> R.string.library_playback_failed
+                LibraryMessage.FILTERED -> R.string.pro_filter_done
+                LibraryMessage.FILTER_FAILED -> R.string.pro_filter_failed
+                LibraryMessage.PRO_REQUIRED -> R.string.pro_access_required
+                LibraryMessage.THERMAL_LIMIT -> R.string.pro_filter_thermal
             }),Modifier.semantics { liveRegion=LiveRegionMode.Polite })
         } }
         if(state.working) item { Text(stringResource(R.string.library_working)) }
+        state.filterProgress?.let { progress -> item {
+            Text(stringResource(R.string.pro_filter_progress,progress),style=MaterialTheme.typography.bodySmall)
+            LinearProgressIndicator(progress=progress/100f,modifier=Modifier.fillMaxWidth())
+        } }
         if(state.locked) item {
             NeonPanel(Modifier.fillMaxWidth()) {
                 Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
@@ -156,6 +167,8 @@ fun RecordingsScreen(model: RecordingsViewModel) {
                             DropdownMenuItem(text={Text(stringResource(R.string.library_share))},onClick={menu=false;model.share(recording.key)})
                             DropdownMenuItem(text={Text(stringResource(R.string.library_rename))},onClick={menu=false;renameTarget=recording;renameText=recording.title.orEmpty()})
                             DropdownMenuItem(text={Text(stringResource(R.string.library_category))},onClick={menu=false;categoryTarget=recording})
+                            DropdownMenuItem(text={Text(stringResource(R.string.pro_apply_filter))},enabled=recording.readable,
+                                onClick={menu=false;filterTarget=recording;intensity=1f})
                             DropdownMenuItem(text={Text(stringResource(R.string.library_delete))},onClick={menu=false;deleting=recording})
                         }
                     }
@@ -194,6 +207,18 @@ fun RecordingsScreen(model: RecordingsViewModel) {
             }},confirmButton={TextButton(onClick={model.setCategory(recording.key,selected);categoryTarget=null}) { Text(stringResource(R.string.library_save)) }},
             dismissButton={TextButton(onClick={categoryTarget=null}) { Text(stringResource(R.string.library_keep)) }})
     }
+    filterTarget?.let { recording -> AlertDialog(onDismissRequest={filterTarget=null},
+        title={Text(stringResource(R.string.pro_apply_filter))},
+        text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
+            Text(stringResource(R.string.pro_preserves_original),style=MaterialTheme.typography.bodySmall)
+            com.umbracam.core.recording.FilterId.entries.forEach { filter ->
+                FilterChip(selected=selectedFilter==filter,onClick={selectedFilter=filter},label={Text(stringResource(filter.labelResource()))})
+            }
+            Text(stringResource(R.string.pro_intensity,(intensity*100).toInt()))
+            Slider(value=intensity,onValueChange={intensity=it},valueRange=0f..1f)
+        }},
+        confirmButton={TextButton(onClick={model.applyFilter(recording.key,selectedFilter,intensity);filterTarget=null},enabled=!state.working) { Text(stringResource(R.string.pro_apply_filter)) }},
+        dismissButton={TextButton(onClick={filterTarget=null}) { Text(stringResource(R.string.library_keep)) }}) }
 }
 
 @androidx.annotation.StringRes
@@ -204,6 +229,16 @@ private fun categoryResource(category:String):Int = when(category) {
     "important" -> R.string.library_category_important
     "sos" -> R.string.library_category_sos
     else -> R.string.library_category_none
+}
+
+@androidx.annotation.StringRes
+private fun com.umbracam.core.recording.FilterId.labelResource():Int = when(this) {
+    com.umbracam.core.recording.FilterId.NATURAL -> R.string.pro_filter_natural
+    com.umbracam.core.recording.FilterId.WARM -> R.string.pro_filter_warm
+    com.umbracam.core.recording.FilterId.COOL -> R.string.pro_filter_cool
+    com.umbracam.core.recording.FilterId.MONOCHROME -> R.string.pro_filter_monochrome
+    com.umbracam.core.recording.FilterId.CINEMATIC -> R.string.pro_filter_cinematic
+    com.umbracam.core.recording.FilterId.VINTAGE -> R.string.pro_filter_vintage
 }
 
 @Composable

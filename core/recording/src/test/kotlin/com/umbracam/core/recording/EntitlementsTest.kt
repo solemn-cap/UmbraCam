@@ -12,8 +12,11 @@ class EntitlementsTest {
         assertFalse(provider.has(PremiumFeature.FILTERS_EFFECTS))
     }
 
-    @Test fun proTierUnlocksCatalogFeatures() {
+    @Test fun proTierUnlocksLocalCreatorToolsButNotSeparatelyAuthorizedFeatures() {
         val provider = DevelopmentEntitlementProvider(EntitlementTier.PRO)
-        assertTrue(premiumFeatureCatalog.all { provider.has(it.feature) })
+        assertTrue(provider.has(PremiumFeature.FILTERS_EFFECTS))
+        assertTrue(provider.has(PremiumFeature.CREATOR_TOOLS))
+        assertFalse(provider.has(PremiumFeature.AI_STUDIO))
+        assertFalse(provider.has(PremiumFeature.ADVANCED_PROTECTION))
     }
 }

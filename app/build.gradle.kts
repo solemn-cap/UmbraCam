@@ -14,7 +14,7 @@ android {
         versionName = "0.6.1-beta2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -37,6 +37,8 @@ dependencies {
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.biometric)
+    implementation(libs.media3.transformer)
+    implementation(libs.media3.effect)
     debugImplementation(libs.compose.tooling)
     debugImplementation(libs.compose.test.manifest)
     testImplementation(libs.junit)

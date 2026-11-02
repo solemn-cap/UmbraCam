@@ -14,6 +14,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -39,6 +40,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import com.umbracam.app.R
 import com.umbracam.core.recording.RecordingState
 import com.umbracam.core.recording.CaptureThermalPolicy
@@ -48,7 +50,7 @@ import com.umbracam.core.recording.SingleCameraSessionCoordinator
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CameraStudioScreen(viewModel: CameraStudioViewModel, onCheckCameraSupport: () -> Unit = {}, onRecordings: () -> Unit = {},
-    sosOpenRequest: Int = 0) {
+    sosOpenRequest: Int = 0, onOpenPro: () -> Unit = {}) {
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
     val ui by viewModel.ui.collectAsStateWithLifecycle()
@@ -71,6 +73,21 @@ fun CameraStudioScreen(viewModel: CameraStudioViewModel, onCheckCameraSupport: (
     var handledSosRequest by rememberSaveable { mutableIntStateOf(0) }
     var preparedSosRequest by remember { mutableIntStateOf(0) }
     var expanded by remember { mutableStateOf(false) }
+    var teleprompterDialog by remember { mutableStateOf(false) }
+    var teleprompterVisible by rememberSaveable { mutableStateOf(false) }
+    var teleprompterRunning by rememberSaveable { mutableStateOf(false) }
+    var teleprompterSpeed by rememberSaveable { mutableFloatStateOf(1f) }
+    val creatorToolsAvailable = remember(context) { (context.applicationContext as com.umbracam.app.UmbraCamApplication).entitlements.has(com.umbracam.core.recording.PremiumFeature.CREATOR_TOOLS) }
+    val promptPreferences = remember(context) { context.getSharedPreferences("creator_tools", android.content.Context.MODE_PRIVATE) }
+    var teleprompterText by remember(context) { mutableStateOf(promptPreferences.getString("teleprompter_script", "").orEmpty()) }
+    val promptScroll = rememberScrollState()
+    LaunchedEffect(teleprompterVisible,teleprompterRunning,teleprompterSpeed,teleprompterText) {
+        while(isActive && teleprompterVisible && teleprompterRunning) {
+            if(promptScroll.maxValue>0 && promptScroll.value>=promptScroll.maxValue) { teleprompterRunning=false; break }
+            promptScroll.scrollBy(teleprompterSpeed * 1f)
+            delay(50)
+        }
+    }
     val busy = session?.state in SingleCameraSessionCoordinator.busyStates
     val sosPending = pendingAction == 3
     val settingsEnabled = !busy && !sosPending && !ui.serviceRunning && !ui.initializing && !ui.loading
@@ -162,6 +179,13 @@ fun CameraStudioScreen(viewModel: CameraStudioViewModel, onCheckCameraSupport: (
                     scaleType=PreviewView.ScaleType.FIT_CENTER
                 }},modifier=Modifier.fillMaxWidth().height(previewHeight),onReset=null,
                     onRelease={viewModel.detach(owner)},update={viewModel.attach(owner,it)})
+                if(teleprompterVisible && teleprompterText.isNotBlank()) {
+                    Surface(Modifier.align(Alignment.TopCenter).padding(12.dp).fillMaxWidth(.78f).heightIn(max=previewHeight*.62f),
+                        color=androidx.compose.ui.graphics.Color.Black.copy(alpha=.72f),shape=RoundedCornerShape(16.dp)) {
+                        Text(teleprompterText,Modifier.verticalScroll(promptScroll).padding(14.dp),style=MaterialTheme.typography.titleMedium,
+                            color=androidx.compose.ui.graphics.Color.White)
+                    }
+                }
                 ui.quality?.let { quality ->
                     Surface(Modifier.align(Alignment.TopEnd).padding(8.dp),shape=RoundedCornerShape(12.dp),color=MaterialTheme.colorScheme.surfaceVariant) {
                         TextButton(onClick={expanded=true},enabled=settingsEnabled) {
@@ -220,6 +244,9 @@ fun CameraStudioScreen(viewModel: CameraStudioViewModel, onCheckCameraSupport: (
         }
         if(!busy && session?.error?.recoverable==true) OutlinedButton(onClick={requestRecording(true)},enabled=cameraGranted && ui.ready && dualAvailable && !ui.initializing && !ui.serviceRunning) { Text(stringResource(R.string.camera_resume)) }
         TextButton(onClick={expanded=true},enabled=settingsEnabled) { Text(stringResource(R.string.suite_options)) }
+        OutlinedButton(onClick={if(creatorToolsAvailable) teleprompterDialog=true else onOpenPro()},enabled=!busy && cameraGranted,modifier=Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.pro_teleprompter))
+        }
         if(cameraGranted) Text(stringResource(R.string.camera_intro),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
         session?.completedSegments?.lastOrNull()?.let { Text(stringResource(R.string.camera_saved_file,it.storageId),style=MaterialTheme.typography.bodySmall) }
         if((session?.completedSegments?.size?:0)>1) Text(stringResource(R.string.camera_segment_count,session!!.completedSegments.size))
@@ -241,6 +268,19 @@ fun CameraStudioScreen(viewModel: CameraStudioViewModel, onCheckCameraSupport: (
             TextButton(onClick={expanded=false}) { Text(stringResource(R.string.suite_close)) }
         }
     }
+    if(teleprompterDialog) AlertDialog(onDismissRequest={teleprompterDialog=false},title={Text(stringResource(R.string.pro_teleprompter))},
+        text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
+            Text(stringResource(R.string.pro_teleprompter_note),style=MaterialTheme.typography.bodySmall)
+            OutlinedTextField(teleprompterText,{teleprompterText=it},modifier=Modifier.fillMaxWidth(),minLines=4,maxLines=8,
+                label={Text(stringResource(R.string.pro_script))})
+            Text(stringResource(R.string.pro_scroll_speed,(teleprompterSpeed*100).toInt()))
+            Slider(value=teleprompterSpeed,onValueChange={teleprompterSpeed=it},valueRange=.3f..2f)
+            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected=teleprompterVisible,onClick={teleprompterVisible=!teleprompterVisible},label={Text(stringResource(R.string.pro_prompt_show))})
+                FilterChip(selected=teleprompterRunning,onClick={teleprompterRunning=!teleprompterRunning},label={Text(stringResource(if(teleprompterRunning) R.string.pro_prompt_pause else R.string.pro_prompt_start))})
+            }
+        }},confirmButton={TextButton(onClick={promptPreferences.edit().putString("teleprompter_script",teleprompterText.take(12000)).apply();teleprompterDialog=false}) { Text(stringResource(R.string.library_save)) }},
+        dismissButton={TextButton(onClick={teleprompterRunning=false;teleprompterDialog=false}) { Text(stringResource(R.string.suite_close)) }})
 }
 private val CameraIssue.messageResource: Int get() = when (this) {
     CameraIssue.THERMAL -> R.string.error_thermal

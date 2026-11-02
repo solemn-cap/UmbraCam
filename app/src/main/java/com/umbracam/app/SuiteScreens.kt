@@ -30,12 +30,13 @@ fun Destination.suiteIcon(): Int = when(this) {
     Destination.REACTION -> R.drawable.ic_suite_screen
     Destination.SOS -> R.drawable.ic_suite_shield
     Destination.VAULT -> R.drawable.ic_suite_folder
+    Destination.PRO -> R.drawable.ic_suite_star
     Destination.SETTINGS -> R.drawable.ic_suite_settings
     else -> R.drawable.ic_suite_home
 }
 
 @Composable
-fun SuiteHome(onOpen: (Destination) -> Unit) {
+fun SuiteHome(onOpen: (Destination) -> Unit, onPro: () -> Unit = {}) {
     val columns = if(LocalDensity.current.fontScale >= 1.5f && LocalConfiguration.current.screenWidthDp < 600) 1 else 2
     Column(verticalArrangement=Arrangement.spacedBy(14.dp)) {
         Destination.studios.chunked(columns).forEach { row ->
@@ -64,6 +65,10 @@ fun SuiteHome(onOpen: (Destination) -> Unit) {
                     }
                 }
             }
+        }
+        NeonPanel(Modifier.fillMaxWidth().clickable(role=Role.Button,onClick=onPro)) {
+            Text(stringResource(R.string.pro_title),style=MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.pro_home_detail),style=MaterialTheme.typography.bodySmall)
         }
         Text(stringResource(R.string.tagline),Modifier.fillMaxWidth().padding(top=8.dp),style=MaterialTheme.typography.bodySmall,
             textAlign=TextAlign.Center,color=MaterialTheme.colorScheme.onSurfaceVariant)
@@ -106,7 +111,7 @@ fun SuiteRail(current: Destination, onOpen: (Destination) -> Unit) {
 }
 
 @Composable
-fun SuiteSettings(onCamera: () -> Unit, onRecordings: () -> Unit, onSupport: () -> Unit, onSos: () -> Unit, onWelcome: () -> Unit) {
+fun SuiteSettings(onCamera: () -> Unit, onRecordings: () -> Unit, onSupport: () -> Unit, onSos: () -> Unit, onWelcome: () -> Unit, onPro: () -> Unit = {}) {
     var information by remember { mutableStateOf<Pair<String,String>?>(null) }
     val context=LocalContext.current
     val details=stringResource(R.string.settings_details)
@@ -121,6 +126,7 @@ fun SuiteSettings(onCamera: () -> Unit, onRecordings: () -> Unit, onSupport: () 
         SuiteSettingRow(R.drawable.ic_suite_storage,stringResource(R.string.suite_storage),stringResource(R.string.suite_storage_hint),onRecordings)
         SuiteSettingRow(R.drawable.ic_suite_lock,privacy,stringResource(R.string.suite_privacy_hint)) { information=privacy to privacyText }
         SuiteSettingRow(R.drawable.ic_suite_shield,stringResource(R.string.sos_title),stringResource(R.string.suite_sos_detail),onSos)
+        SuiteSettingRow(R.drawable.ic_suite_star,stringResource(R.string.pro_title),stringResource(R.string.pro_home_detail),onPro)
         SuiteSettingRow(R.drawable.ic_suite_settings,appearance,stringResource(R.string.suite_appearance_hint)) { information=appearance to details }
         SuiteSettingRow(R.drawable.ic_suite_info,about,packageVersion) { information=about to "UmbraCam $packageVersion" }
         SuiteSettingRow(R.drawable.ic_suite_camera,stringResource(R.string.camera_support_check),stringResource(R.string.suite_support_hint),onSupport)

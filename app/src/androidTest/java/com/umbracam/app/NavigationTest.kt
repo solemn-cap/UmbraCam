@@ -50,6 +50,15 @@ class NavigationTest {
         compose.onNodeWithText(compose.activity.getString(R.string.settings_details)).performScrollTo().assertIsDisplayed()
     }
 
+    @Test fun proDiscoveryShowsHonestAccessAndNoCheckout() {
+        compose.onNodeWithText(compose.activity.getString(R.string.pro_title)).performScrollTo().performClick()
+        compose.onNodeWithText(compose.activity.getString(R.string.pro_intro)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(compose.activity.getString(R.string.pro_no_checkout)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(compose.activity.getString(R.string.pro_layout_presets)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Buy now").assertDoesNotExist()
+        compose.onNodeWithText("Subscribe").assertDoesNotExist()
+    }
+
     @Test fun supportCheckSurvivesRecreationAndBackReturnsToSettings() {
         compose.onNodeWithText("Settings").performClick()
         compose.onNodeWithText(compose.activity.getString(R.string.camera_support_check)).performScrollTo().performClick()
