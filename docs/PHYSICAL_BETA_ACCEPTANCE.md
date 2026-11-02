@@ -1,5 +1,15 @@
 # Samsung beta acceptance — 2026-11-02
 
+## Follow-up physical attempt — 2026-11-02
+
+The user made the phone available for further acceptance. Connected explicitly to `R5CT718YA8M` (Samsung SM-S9080, Android 16/API36); no other device was targeted. The app data was not cleared. At the start, Android ThermalService reported status 1, battery 36.6°C, skin 36.6°C, and AP 40.4°C. The app `no_backup` tree contained 116 files. A swipe dismissed the lock screen without a credential; no settings or timeout values were changed.
+
+The first runner command used an unsupported `+`-joined method filter and Gradle reported `BUILD SUCCESSFUL` with **0 tests**. This is not test evidence. The corrected command selected `ScreenRecordingIntegrationTest#cancellationNeverCreatesOutputAndNextStartRequestsFreshConsent` and executed one test on `SM-S9080 - 16`; it failed in 3.544 seconds before consent or capture. `enter()` could not find a Compose hierarchy while the notification shade was focused. XML: `app/build/outputs/androidTest-results/connected/debug/TEST-SM-S9080 - 16-_app-.xml`. No recording was started or deleted. The test APK compiled; production sources/APK were unchanged.
+
+After the failed attempt, ThermalService still reported status 1, with battery 37.1°C, skin 39.2°C, and AP 57.1°C. The device had returned to the notification shade/lock screen, so physical capture attempts were stopped. This does not establish a thermal-stop defect; the test never reached app UI or capture. The remainder of the requested physical batch (screen cancellation/rotation/projection revocation, combined layouts/camera loss, OS sharing control, and source-preservation checks) remains pending. Existing completed files were not intentionally modified; no before/after content hash comparison was completed during this attempt. Host and emulator evidence elsewhere in this report remains unchanged.
+
+Exact commands: initial invocation selected methods with a `+` separator and executed zero tests; corrected invocation used `-Pandroid.testInstrumentationRunnerArguments.class=com.umbracam.app.ScreenRecordingIntegrationTest#cancellationNeverCreatesOutputAndNextStartRequestsFreshConsent`, plus `-Pandroid.testInstrumentationRunnerArguments.physicalAcceptance=true` and `-Pandroid.testInstrumentationRunnerArguments.screenInterruptions=true`, with `:app:connectedDebugAndroidTest --offline --no-daemon --max-workers=2 -Pkotlin.incremental=false -Pkotlin.compiler.execution.strategy=in-process --console=plain`. Corrected result: 1 failed, 0 passed, Gradle BUILD FAILED.
+
 Device: physical Samsung SM-S9080, Android16/API36, current user0. The user explicitly made this phone available for all acceptance steps and confirmed it was unlocked. Tests use its explicit ADB selector on server5038. No other device is controlled.
 
 ## Implementation
