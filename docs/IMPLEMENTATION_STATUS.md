@@ -29,7 +29,7 @@ Live billing, cloud backup, encryption, biometric vault lock, internal screen au
 
 ## Verification and limits
 
-The 2026-11-02 Milestone 5 batch passed 178 JVM tests (124 core, 54 app), debug and AndroidTest APK assembly, and lint (0 errors, 27 warnings). Native checks passed combined PiP/split capture and camera-source-loss finalization on API29, API30 and API36 emulators; API36 also passed the 14-test beta2 regression suite. Physical screen-only/combined acceptance, OS sharing-chip behavior, sustained throughput, thermal performance, and audio remain open. See [MILESTONE_5_PROGRESS.md](MILESTONE_5_PROGRESS.md) for exact commands and caveats.
+The 2026-11-02 Milestone 5 batch passed 178 JVM tests (124 core, 54 app), debug and AndroidTest APK assembly, and lint (0 errors, 27 warnings). Native checks passed combined PiP/split capture and camera-source-loss finalization on API29, API30 and API36 emulators; API36 also passed the 14-test beta2 regression suite. The follow-up API30 lifecycle sweep passed cancellation, rotation, projection revocation, combined capture and opt-in camera screen-off continuation. Its screen-only Home/playback method timed out after System UI ANRs; no API36 follow-up ran because its cold boot did not expose ADB. Physical screen-only/combined acceptance, OS sharing-chip behavior, sustained throughput, thermal performance, and audio remain open. See [MILESTONE_5_PROGRESS.md](MILESTONE_5_PROGRESS.md) for exact commands and caveats.
 
 ## Recommended next step
 

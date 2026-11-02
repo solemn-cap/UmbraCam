@@ -259,7 +259,8 @@ class ScreenRecordingIntegrationTest {
     @Test fun realConsentProducesSilentDecodableVideoAndLibraryEntry() {
         enter()
         val originalIntent = android.content.Intent(compose.activity.intent).apply {
-            flags = (flags and android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK.inv()) or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
+            flags = (flags and android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK.inv()) or
+                android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP or android.content.Intent.FLAG_ACTIVITY_NEW_TASK
         }
         compose.onNodeWithText("Start screen recording").performScrollTo().performClick()
         systemButton(true)
@@ -269,7 +270,7 @@ class ScreenRecordingIntegrationTest {
             compose.activityRule.scenario.recreate()
             SystemClock.sleep(5_000)
             assertTrue("Elapsed timer advances even for a static screen", controller.ui.value.elapsedMillis >= 4_000)
-            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_HOME)
+            assertTrue(instrumentation.uiAutomation.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME))
             SystemClock.sleep(1_000)
             assertEquals(RecordingState.RECORDING, controller.session.value?.state)
             val notification = compose.activity.getSystemService(NotificationManager::class.java).activeNotifications.single { it.id == 1002 }.notification
