@@ -13,6 +13,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.umbracam.core.recording.RecordingState
+import com.umbracam.core.recording.CaptureSource
 import com.umbracam.app.library.RecordingPlayerView
 import org.junit.Assert.*
 import org.junit.Before

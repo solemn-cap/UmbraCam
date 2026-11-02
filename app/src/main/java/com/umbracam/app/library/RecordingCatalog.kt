@@ -12,7 +12,7 @@ data class CatalogRecording(val key: String, val source: String, val name: Strin
     val modifiedMillis: Long, val bytes: Long, val durationMillis: Long?, val readable: Boolean,
     val kind: String = "standard", val encrypted: Boolean = false, val width: Int? = null,
     val height: Int? = null, val frameRate: Int? = null, val hasAudio: Boolean? = null,
-    val title: String? = null, val category: String = "")
+    val title: String? = null, val category: String = "", val audioTrackCount: Int? = null)
 
 /** Filter completed catalog entries without changing their newest-first order. */
 fun filterRecordings(entries: List<CatalogRecording>, source: String, query: String,
@@ -39,7 +39,7 @@ class RecordingCatalog(private val roots: Map<String, File>, private val inspect
             val label = labels[file.name.removeSuffix(".mp4")]
             CatalogRecording(key, source, file.name, resolved.lastModified(), resolved.length(), video?.durationMillis, video != null,
                 if (file.name in sosIds) "sos" else "standard", encrypted, video?.width, video?.height, video?.frameRate, video?.hasAudio,
-                label?.title, label?.category.orEmpty())
+                label?.title, label?.category.orEmpty(), video?.audioTrackCount)
         }
     }.sortedWith(compareByDescending<CatalogRecording> { it.modifiedMillis }.thenBy { it.key })
 

@@ -43,6 +43,11 @@ class RecordingCatalogTest {
         val repository = RecordingCatalog(mapOf("camera" to root), VideoInspector { InspectedVideo(1234, false) }, { setOf(file.name) })
         assertEquals("sos", repository.list().single().kind)
     }
+    @Test fun catalogExposesTheInspectedAudioTrackCount() {
+        val root = temporary.newFolder(); video(root)
+        val repository = RecordingCatalog(mapOf("camera" to root), VideoInspector { InspectedVideo(1234, true, audioTrackCount = 2) })
+        assertEquals(2, repository.list().single().audioTrackCount)
+    }
     @Test fun deletionRemovesOnlySelectedCompletedFile() {
         val root = temporary.newFolder(); val selected = video(root); val preserved = video(root)
         val pending = video(root, "pending")

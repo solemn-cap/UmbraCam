@@ -22,6 +22,7 @@ Phase 1 was explicitly approved on 2026-10-30. Camera Studio implements a user-s
 | Implemented; Samsung validation | User-started service continuation and explicit recovery | Short physical continuation/recovery/screen-off checks passed; broader matrix open; no automatic restart |
 | Implemented in source; verification deferred | Encrypted vault, biometric app gate, metadata, playback/share/export | Finalized files encrypted; active staging and transient copies plaintext; device acceptance pending |
 | Implemented in source; verification deferred | Deterministic post-record filters, Pro discovery, preview teleprompter, saved Reaction layouts | Debug-only local Pro entitlement; no billing or purchase action |
+| Implemented in source; verification deferred | Non-destructive creator exports with trim, aspect-ratio framing, positioned branding, per-track audio mixing, bitrate targets; library audio-track inventory | Existing encrypted export path preserves the original. Noise reduction, transitions and independent camera windows are not included. Bitrate is a device-dependent request. |
 | Future | Cloud backup, contact alerts, advanced creator tracks and overlays | Out of scope; no backend dependencies |
 
 ## Recording modes

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -36,6 +37,7 @@ class RecordingsViewModel(application: Application) : AndroidViewModel(applicati
         biometricLockEnabled = vaultAccess.enabled, biometricAvailable = vaultAccess.canAuthenticate))
     val state = mutableState.asStateFlow()
     private var exportKey: String? = null
+    private var creatorExportJob: Job? = null
     private var playbackTemporary: File? = null
     fun refresh() {
         if (state.value.working) return
@@ -94,7 +96,8 @@ class RecordingsViewModel(application: Application) : AndroidViewModel(applicati
     }
     fun rename(key: String, title: String) = metadataOperation { catalog.rename(key, title) }
     fun setCategory(key: String, category: String) = metadataOperation { catalog.setCategory(key, category) }
-    fun applyFilter(key: String, filter: com.umbracam.core.recording.FilterId, intensity: Float = 1f) {
+    fun applyFilter(key: String, filter: com.umbracam.core.recording.FilterId, intensity: Float = 1f,
+        edit: com.umbracam.core.recording.CreatorEdit = com.umbracam.core.recording.CreatorEdit()) {
         if (!app.entitlements.has(com.umbracam.core.recording.PremiumFeature.FILTERS_EFFECTS)) {
             mutableState.update { it.copy(message = LibraryMessage.PRO_REQUIRED) }; return
         }
@@ -106,14 +109,15 @@ class RecordingsViewModel(application: Application) : AndroidViewModel(applicati
         }
         app.libraryOperation = true
         mutableState.update { it.copy(working = true, filterProgress = 0, message = null) }
-        viewModelScope.launch {
+        creatorExportJob = viewModelScope.launch {
             try {
                 val original = state.value.recordings.firstOrNull { it.key == key } ?: error("Recording is no longer in the library")
                 val recording = catalog.resolve(key)
                 val exporter = com.umbracam.app.creator.VideoFilterExporter(app, app.vaultCodec,
                     File(app.cacheDir, "vault-transient"), File(app.noBackupFilesDir, original.source),
                     { !com.umbracam.core.recording.CaptureThermalPolicy.mustStop(app.captureThermals.status.value) })
-                val id = exporter.export(recording, com.umbracam.core.recording.FilterConfig(filter, intensity)) { progress ->
+                val safeEdit = edit.validated(original.durationMillis)
+                val id = exporter.export(recording, com.umbracam.core.recording.FilterConfig(filter, intensity), safeEdit) { progress ->
                     mutableState.update { it.copy(filterProgress = progress.coerceIn(0, 100)) }
                 }
                 withContext(Dispatchers.IO) {
@@ -125,11 +129,12 @@ class RecordingsViewModel(application: Application) : AndroidViewModel(applicati
                 }
                 mutableState.update { it.copy(message = LibraryMessage.FILTERED) }
             } catch (_: com.umbracam.app.creator.CreatorProcessingThermalLimit) { mutableState.update { it.copy(message = LibraryMessage.THERMAL_LIMIT) } }
-            catch (error: kotlinx.coroutines.CancellationException) { throw error }
+            catch (error: kotlinx.coroutines.CancellationException) { mutableState.update { it.copy(message = LibraryMessage.CANCELLED) }; throw error }
             catch (_: Exception) { mutableState.update { it.copy(message = LibraryMessage.FILTER_FAILED) } }
-            finally { app.libraryOperation = false; mutableState.update { it.copy(working = false, filterProgress = null) }; refresh() }
+            finally { creatorExportJob = null; app.libraryOperation = false; mutableState.update { it.copy(working = false, filterProgress = null) }; refresh() }
         }
     }
+    fun cancelCreatorExport() { creatorExportJob?.cancel() }
     private fun metadataOperation(action: () -> Unit) {
         if (state.value.working || state.value.locked || app.libraryOperation) return
         app.libraryOperation = true; mutableState.update { it.copy(working = true) }
@@ -165,8 +170,8 @@ class RecordingsViewModel(application: Application) : AndroidViewModel(applicati
                 }
                 val uri = androidx.core.content.FileProvider.getUriForFile(app, "${app.packageName}.files", shared)
                 val intent = Intent(Intent.ACTION_SEND).setType("video/mp4").putExtra(Intent.EXTRA_STREAM, uri)
-                    .setClipData(android.content.ClipData.newUri(app.contentResolver, "UmbraCam recording", uri))
-                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                intent.setClipData(android.content.ClipData.newUri(app.contentResolver, "UmbraCam recording", uri))
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                 app.startActivity(Intent.createChooser(intent, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             } catch (_: Exception) { mutableState.update { it.copy(message = LibraryMessage.FAILED) } }
             finally { app.libraryOperation = false; mutableState.update { it.copy(working = false) } }

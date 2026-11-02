@@ -96,7 +96,7 @@ class RecordingSessionJournal(private val directory: File) {
         val id = data.getProperty("id").also { UUID.fromString(it); require(file.name == "$it.properties") }
         val sources = data.getProperty("sources").split(',').map { CaptureSource.valueOf(it) }.toSet()
         if (version == "3") require(data.getProperty("mode") == null || data.getProperty("mode") == "dual")
-        val isDual = version == "2" || data.getProperty("mode") == "dual"
+        val isDual = version == "2" || (version == "3" && data.getProperty("mode") == "dual")
         val dual = if (isDual) {
             require(data.getProperty("mode") == "dual" && data.getProperty("mirror") == "COMPOSED_PREVIEW")
             DualRecordingSpec(

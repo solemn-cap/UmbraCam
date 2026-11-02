@@ -150,3 +150,7 @@ See [FIRST_BETA_REPORT.md](FIRST_BETA_REPORT.md) for exact methods, commands, co
 
 ## Deferred Milestone 8 verification
 No Milestone 8 checks have been executed. The accumulated suite must cover deterministic tone mappings and intensity limits, Free/Pro gates, Media3 transformation completion/error/cancel, preservation of original encrypted media, encrypted publication and metadata labels, insufficient-space/thermal rejection, cancellation cleanup, and output decoding on supported Android versions. UI checks must confirm release has no purchase action, debug-only Pro messaging is clear, teleprompter text is excluded from recorded output, layout preference restoration, accessibility, and cancellation cleanup. Add device thermal and long-video performance measurements to the Milestone 9/final acceptance batch.
+
+## Deferred Milestone 9 verification
+
+No Milestone 9 checks have been executed. Extend accumulated coverage for trim boundaries and duration, aspect ratio and framing geometry, overlay output/placement, mono/stereo and independent multi-track gain, audio-track inventory, encrypted publication, original preservation, cancellation cleanup, progress behavior, bitrate requests/fallback, and storage/thermal rejection. Verify generated MP4s by inspecting track count and decoding video/audio. Measure elapsed time, peak thermal state and output size on named devices; do not infer performance from emulator runs.

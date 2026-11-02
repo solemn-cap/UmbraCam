@@ -8,7 +8,8 @@ import java.nio.file.StandardCopyOption
 import java.util.UUID
 import com.umbracam.app.vault.EncryptedFileCodec
 
-data class InspectedVideo(val durationMillis: Long, val hasAudio: Boolean, val width: Int = 0, val height: Int = 0, val frameRate: Int? = null)
+data class InspectedVideo(val durationMillis: Long, val hasAudio: Boolean, val width: Int = 0, val height: Int = 0,
+    val frameRate: Int? = null, val audioTrackCount: Int = if (hasAudio) 1 else 0)
 fun interface VideoInspector { fun inspect(file: File): InspectedVideo }
 data class PublishedVideo(val segment: SavedSegment, val hasAudio: Boolean)
 data class VaultMigrationReport(val migrated: Int, val failed: Int)
@@ -20,6 +21,10 @@ class RecordingFileStore(
     private val availableBytes: () -> Long = { root.usableSpace },
     private val vaultCodec: EncryptedFileCodec? = null,
 ) {
+    /** Preserves the original trailing-lambda constructor call for injected disk-space checks. */
+    constructor(root: File, inspector: VideoInspector, availableBytes: () -> Long) :
+        this(root, inspector, availableBytes, null)
+
     private val pending = File(root, "pending")
     private val completed = File(root, "recordings")
     private val quarantine = File(root, "quarantine")

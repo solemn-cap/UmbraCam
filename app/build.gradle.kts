@@ -28,6 +28,7 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.compose.tooling.preview)
     implementation(libs.activity.compose)
+    implementation(libs.fragment)
     implementation(libs.navigation.compose)
     implementation(libs.camera.core)
     implementation(libs.camera.camera2)

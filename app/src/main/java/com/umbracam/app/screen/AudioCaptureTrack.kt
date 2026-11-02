@@ -132,7 +132,11 @@ internal class AudioCaptureTrack(
             }
             else -> error("Unsupported audio source")
         }
-        return builder.build()
+        return try {
+            builder.build()
+        } catch (error: SecurityException) {
+            throw SecurityException("The selected audio capture permission is unavailable", error)
+        }
     }
 
     private fun audioFormat() = MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, SAMPLE_RATE, CHANNEL_COUNT).apply {

@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -15,6 +16,7 @@ import com.umbracam.app.UmbraCamApplication
 import com.umbracam.core.recording.*
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 
 data class CreatorOffer(val name: String, val priceLabel: String? = null, val billingAvailable: Boolean = false)
 fun interface CreatorOfferSource { fun offer(): CreatorOffer }

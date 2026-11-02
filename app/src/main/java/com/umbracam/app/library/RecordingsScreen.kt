@@ -50,6 +50,14 @@ fun RecordingsScreen(model: RecordingsViewModel) {
     var filterTarget by remember { mutableStateOf<CatalogRecording?>(null) }
     var selectedFilter by remember { mutableStateOf(com.umbracam.core.recording.FilterId.WARM) }
     var intensity by remember { mutableFloatStateOf(1f) }
+    var editStart by remember { mutableStateOf("0") }
+    var editEnd by remember { mutableStateOf("") }
+    var editBrand by remember { mutableStateOf("") }
+    var editGain by remember { mutableFloatStateOf(1f) }
+    var editTrackGains by remember { mutableStateOf<List<Float>>(emptyList()) }
+    var editFraming by remember { mutableStateOf(com.umbracam.core.recording.CreatorFraming.ORIGINAL) }
+    var overlayPosition by remember { mutableStateOf(com.umbracam.core.recording.CreatorOverlayPosition.BOTTOM) }
+    var exportProfile by remember { mutableStateOf(com.umbracam.core.recording.CreatorExportProfile.BALANCED) }
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("video/mp4"),model::exportTo)
     val owner=LocalLifecycleOwner.current
     val keyboard=LocalSoftwareKeyboardController.current
@@ -127,6 +135,7 @@ fun RecordingsScreen(model: RecordingsViewModel) {
         state.filterProgress?.let { progress -> item {
             Text(stringResource(R.string.pro_filter_progress,progress),style=MaterialTheme.typography.bodySmall)
             LinearProgressIndicator(progress=progress/100f,modifier=Modifier.fillMaxWidth())
+            TextButton(onClick=model::cancelCreatorExport) { Text(stringResource(R.string.creator_cancel_export)) }
         } }
         if(state.locked) item {
             NeonPanel(Modifier.fillMaxWidth()) {
@@ -154,6 +163,7 @@ fun RecordingsScreen(model: RecordingsViewModel) {
                         if(recording.width != null && recording.height != null) Text(stringResource(R.string.library_resolution,recording.width,recording.height),style=MaterialTheme.typography.bodySmall)
                         if(recording.frameRate != null) Text(stringResource(R.string.library_frame_rate,recording.frameRate),style=MaterialTheme.typography.bodySmall)
                         if(recording.hasAudio != null) Text(stringResource(if(recording.hasAudio) R.string.library_audio_present else R.string.library_audio_absent),style=MaterialTheme.typography.bodySmall)
+                        recording.audioTrackCount?.let { Text(stringResource(R.string.library_audio_tracks,it),style=MaterialTheme.typography.bodySmall) }
                         if(recording.category.isNotEmpty()) Text(stringResource(categoryResource(recording.category)),style=MaterialTheme.typography.labelSmall)
                         if(!recording.readable) Text(stringResource(R.string.library_unreadable),style=MaterialTheme.typography.bodySmall)
                     }
@@ -168,7 +178,7 @@ fun RecordingsScreen(model: RecordingsViewModel) {
                             DropdownMenuItem(text={Text(stringResource(R.string.library_rename))},onClick={menu=false;renameTarget=recording;renameText=recording.title.orEmpty()})
                             DropdownMenuItem(text={Text(stringResource(R.string.library_category))},onClick={menu=false;categoryTarget=recording})
                             DropdownMenuItem(text={Text(stringResource(R.string.pro_apply_filter))},enabled=recording.readable,
-                                onClick={menu=false;filterTarget=recording;intensity=1f})
+                                onClick={menu=false;filterTarget=recording;intensity=1f;editStart="0";editEnd="";editBrand="";editGain=1f;editTrackGains=List((recording.audioTrackCount?:0).coerceIn(0,8)){1f};editFraming=com.umbracam.core.recording.CreatorFraming.ORIGINAL;overlayPosition=com.umbracam.core.recording.CreatorOverlayPosition.BOTTOM;exportProfile=com.umbracam.core.recording.CreatorExportProfile.BALANCED})
                             DropdownMenuItem(text={Text(stringResource(R.string.library_delete))},onClick={menu=false;deleting=recording})
                         }
                     }
@@ -209,15 +219,66 @@ fun RecordingsScreen(model: RecordingsViewModel) {
     }
     filterTarget?.let { recording -> AlertDialog(onDismissRequest={filterTarget=null},
         title={Text(stringResource(R.string.pro_apply_filter))},
-        text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
+        text={Column(Modifier.heightIn(max=560.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(10.dp)) {
             Text(stringResource(R.string.pro_preserves_original),style=MaterialTheme.typography.bodySmall)
             com.umbracam.core.recording.FilterId.entries.forEach { filter ->
                 FilterChip(selected=selectedFilter==filter,onClick={selectedFilter=filter},label={Text(stringResource(filter.labelResource()))})
             }
             Text(stringResource(R.string.pro_intensity,(intensity*100).toInt()))
             Slider(value=intensity,onValueChange={intensity=it},valueRange=0f..1f)
+            Text(stringResource(R.string.creator_export_profile),style=MaterialTheme.typography.titleSmall)
+            FlowRow(horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                com.umbracam.core.recording.CreatorFraming.entries.forEach { framing ->
+                    FilterChip(selected=editFraming==framing,onClick={editFraming=framing},label={Text(stringResource(when(framing) {
+                        com.umbracam.core.recording.CreatorFraming.ORIGINAL -> R.string.creator_original
+                        com.umbracam.core.recording.CreatorFraming.SQUARE -> R.string.creator_square
+                        com.umbracam.core.recording.CreatorFraming.VERTICAL -> R.string.creator_vertical
+                        com.umbracam.core.recording.CreatorFraming.LANDSCAPE -> R.string.creator_landscape
+                    }))})
+                }
+            }
+            Text(stringResource(R.string.creator_bitrate_profile),style=MaterialTheme.typography.labelLarge)
+            FlowRow(horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                com.umbracam.core.recording.CreatorExportProfile.entries.forEach { profile ->
+                    val label=when(profile) {
+                        com.umbracam.core.recording.CreatorExportProfile.COMPACT -> R.string.creator_profile_compact
+                        com.umbracam.core.recording.CreatorExportProfile.BALANCED -> R.string.creator_profile_balanced
+                        com.umbracam.core.recording.CreatorExportProfile.HIGH_DETAIL -> R.string.creator_profile_high_detail
+                    }
+                    FilterChip(selected=exportProfile==profile,onClick={exportProfile=profile},label={Text(stringResource(label))})
+                }
+            }
+            Text(stringResource(R.string.creator_bitrate_note),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedTextField(editStart,{editStart=it.filter(Char::isDigit).take(6)},label={Text(stringResource(R.string.creator_trim_start))},singleLine=true)
+            OutlinedTextField(editEnd,{editEnd=it.filter(Char::isDigit).take(6)},label={Text(stringResource(R.string.creator_trim_end))},singleLine=true,
+                supportingText={Text(stringResource(R.string.creator_trim_hint,(recording.durationMillis?:0L)/1000))})
+            OutlinedTextField(editBrand,{editBrand=it.take(48)},label={Text(stringResource(R.string.creator_branding))},singleLine=true)
+            Text(stringResource(R.string.creator_overlay_position),style=MaterialTheme.typography.labelLarge)
+            FlowRow(horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                com.umbracam.core.recording.CreatorOverlayPosition.entries.forEach { position ->
+                    val label=when(position) {
+                        com.umbracam.core.recording.CreatorOverlayPosition.TOP -> R.string.creator_overlay_top
+                        com.umbracam.core.recording.CreatorOverlayPosition.CENTER -> R.string.creator_overlay_center
+                        com.umbracam.core.recording.CreatorOverlayPosition.BOTTOM -> R.string.creator_overlay_bottom
+                    }
+                    FilterChip(selected=overlayPosition==position,onClick={overlayPosition=position},label={Text(stringResource(label))})
+                }
+            }
+            if (editTrackGains.isNotEmpty()) {
+                editTrackGains.forEachIndexed { index, gain ->
+                    Text(stringResource(R.string.creator_audio_track_level,index+1,(gain*100).toInt()))
+                    Slider(value=gain,onValueChange={value -> editTrackGains=editTrackGains.toMutableList().also { it[index]=value }},valueRange=0f..2f)
+                }
+            } else {
+                Text(stringResource(R.string.creator_audio_level,(editGain*100).toInt()))
+                Slider(value=editGain,onValueChange={editGain=it},valueRange=0f..2f)
+            }
         }},
-        confirmButton={TextButton(onClick={model.applyFilter(recording.key,selectedFilter,intensity);filterTarget=null},enabled=!state.working) { Text(stringResource(R.string.pro_apply_filter)) }},
+        confirmButton={TextButton(onClick={
+            val start=(editStart.toLongOrNull()?:0L)*1000L
+            val end=editEnd.toLongOrNull()?.times(1000L)
+            model.applyFilter(recording.key,selectedFilter,intensity,com.umbracam.core.recording.CreatorEdit(start,end,editFraming,editBrand,if(editTrackGains.isEmpty()) editGain else 1f,overlayPosition,editTrackGains,exportProfile));filterTarget=null
+        },enabled=!state.working && editStart.toLongOrNull()!=null && (editEnd.isBlank() || editEnd.toLongOrNull()!=null)) { Text(stringResource(R.string.pro_apply_filter)) }},
         dismissButton={TextButton(onClick={filterTarget=null}) { Text(stringResource(R.string.library_keep)) }}) }
 }
 

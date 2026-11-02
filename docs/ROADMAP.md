@@ -8,7 +8,7 @@ For this roadmap, the premium build is Milestones 7–9: an encrypted Private Va
 
 ## Current baseline — implementation complete, acceptance open
 
-The neon beta2 foundation and the Milestone 5 Reaction Studio implementation are in place. Screen and screen-plus-front-camera PiP/split use fresh consent and typed capability gates; optional microphone/internal playback audio now uses separate synchronized tracks, with all requested-source readiness and camera-loss finalization. Milestone 6 SOS Quick Record now reuses the rear-camera path with journaled SOS metadata. The earlier accumulated batch passed 178 JVM tests, build/AndroidTest APK assembly and lint (0 errors/27 warnings); native combined-layout capture and camera-loss finalization passed on API29, API30 and API36 emulators. Those results predate the audio and SOS follow-ups. The current changes are intentionally uncompiled/unverified until the Milestone 9 test batch. Physical Reaction Studio/SOS acceptance remains open. See [MILESTONE_5_PROGRESS.md](MILESTONE_5_PROGRESS.md) and [MILESTONE_6_PROGRESS.md](MILESTONE_6_PROGRESS.md).
+The neon beta2 foundation and Milestones 5–9 implementation are in place. The accumulated host verification passed 195 JVM tests, debug app and instrumentation APK assembly, and lint with zero errors. No emulator or physical device was connected for this pass; instrumentation and named-device acceptance remain open, especially for Reaction audio, SOS, and creator media exports. Prior emulator evidence predates some Reaction/SOS follow-ups. See [MILESTONE_5_PROGRESS.md](MILESTONE_5_PROGRESS.md), [MILESTONE_6_PROGRESS.md](MILESTONE_6_PROGRESS.md), and [MILESTONE_9_PROGRESS.md](MILESTONE_9_PROGRESS.md).
 
 ### Current state and sequencing
 
@@ -115,7 +115,7 @@ Exit criteria:
 - Existing media survives upgrade and migration tests.
 - Exported copies are clearly identified as outside the app vault.
 
-## Milestone 8 — Premium creator foundation (implementation complete; verification pending)
+## Milestone 8 — Premium creator foundation (implementation and host verification complete; device acceptance pending)
 
 Goal: make Pro discoverable without implementing deceptive or incomplete commerce.
 
@@ -136,6 +136,8 @@ Exit criteria:
 - Catalog, entitlement, and UI copy agree about what is available.
 
 ## Milestone 9 — advanced creator features
+
+Implementation update 2026-11-02: source implementation is complete for supported media inputs: non-destructive trim, framing, positioned branding, per-track audio gain/mixing where multiple muxed audio tracks exist, target bitrate profiles, progress/cancellation/thermal/storage safeguards and encrypted publication. See [MILESTONE_9_PROGRESS.md](MILESTONE_9_PROGRESS.md). Independent camera windows, per-camera effects and transitions are not possible from the existing composed video assets; noise reduction is not implemented. Accumulated verification is now the next step.
 
 Goal: add professional production tools after the core pipeline is proven.
 
@@ -184,14 +186,14 @@ After Milestone 9, run one accumulated verification and acceptance pass, then st
 ## Build-first work batches, then verify once
 
 1. **Complete capture product logic:** finish Reaction Studio audio and synchronization, then implement SOS as a fast user-started capture flow over the existing recorder/service/recovery path. Preserve safe silent behavior and truthful unsupported states.
-2. **Build the Private Vault (implemented, verification pending):** define the threat model and encrypted file format; implement Keystore-backed keys, migration/recovery behavior for existing recordings, biometric lock/fallback, media details and management. Keep export explicitly outside encrypted private storage.
+2. **Build the Private Vault (implemented; host verification complete):** define the threat model and encrypted file format; implement Keystore-backed keys, migration/recovery behavior for existing recordings, biometric lock/fallback, media details and management. Keep export explicitly outside encrypted private storage.
 3. **Build Pro creator foundations:** use the existing entitlement/catalog contracts for honest Pro discovery without fake checkout; implement deterministic filters and non-destructive post-processing, teleprompter, reusable layouts and settings.
 4. **Build advanced creator tools:** independent tracks where supported, custom camera windows, overlays/transitions, audio mixing/noise reduction and export profiles, each behind actual capability/entitlement gates. Avoid empty modules and unsupported feature claims.
-5. **Run the final verification batch:** execute JVM/unit, lint, debug/release assembly and instrumentation suites together; test migrations, interruption, permissions, storage limits, cancellation, media decoding, synchronization, encryption/key loss, and entitlement behavior. Then run named-device acceptance including physical thermal/performance and existing-file preservation. Keep the phone disconnected from test-install operations until this batch.
+5. **Run the device verification batch:** JVM/unit, lint, and debug APK/instrumentation APK assembly have passed (195 JVM tests, zero lint errors). Run instrumentation on an emulator, then named-device acceptance for migrations, interruption, permissions, storage limits, cancellation, media decoding/mixing, synchronization, encryption/key loss and entitlement behavior. Include physical thermal/performance and existing-file preservation checks.
 6. **Start the closed beta:** review the APK signing/key plan and tester guide, invite a small opt-in group, collect consented/sanitized feedback, and triage fixes. No external invitations are sent until the user supplies/approves the tester group and channel.
 
 The initial closed beta may omit Milestone 10 AI/cloud. That milestone requires separate technical, privacy, security, and cost authorization; its optional features do not block a local-only premium beta.
 
 ## Approval gates
 
-The user has authorized a feature-first push through the local premium creator scope: implement Milestone 5 audio follow-up, then Milestones 6–9 without running intermediate test suites; execute the accumulated suite after Milestone 9. Milestone 7 is implemented and Milestone 8 is now implemented in source; both await verification. Physical results and acceptance claims remain pending until that final batch. The roadmap does not authorize live billing, cloud services, emergency messaging, AI processing, or production signing credentials by itself. Milestone 10 requires a separate technical/privacy/security/cost review and explicit approval.
+The user authorized the feature-first implementation through Milestone 9 and the accumulated host test batch. Milestones 5–9 have passed host verification; emulator/device acceptance is the next task before closed beta. The roadmap does not authorize live billing, cloud services, emergency messaging, AI processing, or production signing credentials by itself. Milestone 10 requires a separate technical/privacy/security/cost review and explicit approval.

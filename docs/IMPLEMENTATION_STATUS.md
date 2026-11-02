@@ -1,6 +1,6 @@
 # UmbraCam implementation status
 
-Updated 2026-11-02 after the Milestone 7 Private Vault implementation. Current feature work remains unverified by user direction.
+Updated 2026-11-02 after the Milestone 9 creator export implementation. Current feature work remains unverified by user direction.
 
 ## Works
 
@@ -14,6 +14,7 @@ Updated 2026-11-02 after the Milestone 7 Private Vault implementation. Current f
 - Shared thermal monitoring blocks warm starts and stops active capture conservatively at severe/unknown thermal state.
 - Centralized entitlement checks keep core recording/SOS free, unlock local Pro features only in debug builds, and leave billing disabled.
 - Milestone 8 adds deterministic Media3 video filter exports that preserve originals, Pro discovery with configurable offer/pricing display, a preview-only teleprompter, and saved Reaction PiP/split preferences. This source awaits verification.
+- Milestone 9 adds non-destructive trim, framing, positioned branded text, per-track audio gain/mixing, target bitrate profiles, progress, cancellation, thermal checks and encrypted publication; the library also displays inspected audio-track counts. This source awaits verification; see [MILESTONE_9_PROGRESS.md](MILESTONE_9_PROGRESS.md).
 - Single-camera Milestone 2 path is functional: capability-driven front/rear preview, CameraX recording, microphone opt-in, notification/foreground continuation, timer/state reporting, dynamic supported quality choices, storage checks, metadata validation, finalization, recovery journal, playback and export/delete through the library.
 
 ## Partially implemented
@@ -22,7 +23,7 @@ Updated 2026-11-02 after the Milestone 7 Private Vault implementation. Current f
 - Reaction Studio audio adapter is implemented but not yet compiled or tested; playback capture is subject to API and source-app policy. Screen-camera composition is verified on API29/API30/API36 emulators, but physical-device compatibility remains unverified.
 - Recording recovery preserves completed/partial outputs and requires fresh consent where Android requires it; process-death and long-duration physical qualification remain open.
 - Settings screens expose current supported options and truthful planned-feature descriptions; other preference persistence remains limited.
-- Milestone 9 advanced creator tools remain; filter export thermal, cancellation, and media compatibility acceptance is unverified.
+- Advanced creator scope is partial: independent source-track mixing, noise reduction, custom camera windows, transitions, and codec/bitrate export profiles are not implemented. Filter/edit export thermal, cancellation and media compatibility acceptance is unverified.
 
 ## Not implemented
 
@@ -34,6 +35,6 @@ The 2026-11-02 baseline Milestone 5 batch passed 178 JVM tests (124 core, 54 app
 
 ## Recommended next step
 
-Continue with Milestone 9 advanced creator features before the accumulated test pass. Physical acceptance remains open and is deferred to that final pass.
+Run the accumulated Milestones 5–9 verification pass, then complete named-device acceptance. Physical acceptance remains open.
 
 See the complete staged delivery plan in [ROADMAP.md](ROADMAP.md).

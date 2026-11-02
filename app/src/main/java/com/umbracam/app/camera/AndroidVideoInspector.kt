@@ -18,13 +18,15 @@ class AndroidVideoInspector : VideoInspector {
             val duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
             if (!video || width <= 0 || height <= 0 || duration <= 0) throw IOException("Invalid finalized video")
             val extractor = MediaExtractor()
-            val frameRate = try {
+            val (frameRate, audioTrackCount) = try {
                 extractor.setDataSource(file.absolutePath)
-                (0 until extractor.trackCount).asSequence().map { extractor.getTrackFormat(it) }
-                    .firstOrNull { it.getString(MediaFormat.KEY_MIME)?.startsWith("video/") == true }
+                val formats = (0 until extractor.trackCount).map { extractor.getTrackFormat(it) }
+                val frameRate = formats.firstOrNull { it.getString(MediaFormat.KEY_MIME)?.startsWith("video/") == true }
                     ?.let { format -> if (format.containsKey(MediaFormat.KEY_FRAME_RATE)) format.getInteger(MediaFormat.KEY_FRAME_RATE) else null }
+                frameRate to formats.count { it.getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true }
             } finally { extractor.release() }
-            return InspectedVideo(duration, retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO) == "yes", width, height, frameRate)
+            val hasAudio = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO) == "yes"
+            return InspectedVideo(duration, hasAudio, width, height, frameRate, audioTrackCount)
         } finally {
             retriever.release()
         }

@@ -17,7 +17,8 @@ class VaultMetadataStore(private val file: File, private val temporaryDirectory:
         val clear = File.createTempFile("vault-index-", ".tmp", temporaryDirectory.apply { mkdirs() })
         return try {
             codec.decrypt(file, clear)
-            Properties().also { properties -> FileInputStream(clear).use(properties::load) }
+            val properties = Properties().also { FileInputStream(clear).use(it::load) }
+            properties
                 .stringPropertyNames().mapNotNull { key ->
                     val id = key.substringBefore('.')
                     if (runCatching { UUID.fromString(id) }.isFailure) null else {
@@ -43,9 +44,10 @@ class VaultMetadataStore(private val file: File, private val temporaryDirectory:
 
     private fun write(entries: Map<String, VaultRecordingLabels>) {
         check(temporaryDirectory.isDirectory || temporaryDirectory.mkdirs())
-        check(file.parentFile.isDirectory || file.parentFile.mkdirs())
+        val parent = requireNotNull(file.parentFile) { "Vault metadata file needs a parent directory" }
+        check(parent.isDirectory || parent.mkdirs())
         val clear = File.createTempFile("vault-index-clear-", ".tmp", temporaryDirectory)
-        val encrypted = File.createTempFile("vault-index-", ".tmp", file.parentFile)
+        val encrypted = File.createTempFile("vault-index-", ".tmp", parent)
         try {
             val properties = Properties()
             entries.forEach { (id, labels) ->
