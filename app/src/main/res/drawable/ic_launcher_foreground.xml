@@ -1,0 +1,3 @@
+<inset xmlns:android="http://schemas.android.com/apk/res/android" android:insetLeft="14%" android:insetRight="14%" android:insetTop="18.51%" android:insetBottom="18.51%">
+    <bitmap android:src="@drawable/umbracam_icon" android:gravity="fill" android:filter="true" />
+</inset>

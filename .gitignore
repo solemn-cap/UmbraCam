@@ -1,0 +1,16 @@
+.gradle/
+.gradle-stale-*/
+.kotlin/
+**/build/
+local.properties
+.idea/
+*.iml
+.tools/
+.impeccable/review/
+.impeccable/history/
+.impeccable/questions/
+captures/
+*.jks
+*.keystore
+hs_err_pid*.log
+java_pid*.hprof
