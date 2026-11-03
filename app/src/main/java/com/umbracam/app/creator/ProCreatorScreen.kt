@@ -1,8 +1,6 @@
 package com.umbracam.app.creator
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,7 +30,8 @@ fun ProCreatorScreen(onOpenCamera: () -> Unit, onOpenReaction: () -> Unit) {
     var reactionLayout by remember(preferences) { mutableStateOf(preferences.getString("reaction_layout",ReactionLayout.PICTURE_IN_PICTURE.name)!!) }
     val offer=app.creatorOfferSource.offer()
     val tier=app.entitlements.tier()
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(14.dp)) {
+    // UmbraCamApp owns the route-level scroll container for this screen.
+    Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(14.dp)) {
         NeonPanel(Modifier.fillMaxWidth()) {
             Text(offer.name,style=MaterialTheme.typography.headlineSmall)
             Text(stringResource(R.string.pro_intro),style=MaterialTheme.typography.bodyMedium)
