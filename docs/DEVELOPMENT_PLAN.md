@@ -74,9 +74,9 @@ The initial portrait dual adapter, common process/service ownership, health time
 
 The user authorized a combined shortest-path milestone superseding the small Phase5 checkpoint cadence: real silent screen capture plus a camera/screen recordings library with playback, selected export and confirmed delete. Implement and validate these together before adding SOS, encryption or reaction overlays. See FIRST_BETA_REPORT.md for the live delivery record. Earlier phase descriptions above are historical; full physical dual/performance qualification remains outstanding and must not be claimed from emulator tests.
 
-## Current next task after beta interruption checks
+## Current next task after Milestones 5–9 host verification
 
-The useful beta is delivered. Emulator rotation/revocation and process-termination acceptance now pass; see BETA_ACCEPTANCE.md for exact scope and environment limitations. Production APK remains unchanged. Next is the recorded handset acceptance checklist when the user explicitly makes a phone available. Keep physical/OEM/audio/thermal/long-duration qualification pending and resolve observed issues before new features; a generic proceed/resume does not revoke the phone-unavailable constraint.
+The accumulated host pass succeeded on 2026-11-02 (132 core tests, 63 app tests, debug and AndroidTest APK assembly, lint zero errors). Connected instrumentation and named-device acceptance are next. Two attempts to boot the disposable API36 AVD failed to produce an ADB target; no phone is currently attached. Retry the connected suite when a responsive emulator or authorized phone appears, then complete the listed media, permission, interruption, storage, thermal and source-preservation checks. A debug APK candidate is documented in BETA_CANDIDATE.md; do not distribute it before device acceptance and artifact review. Milestone 10 AI/cloud remains separately gated.
 
 ## Current active major slice — Milestone 5 Reaction Studio (2026-11-02)
 

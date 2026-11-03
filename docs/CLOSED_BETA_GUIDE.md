@@ -44,6 +44,6 @@ Optional sanitized log or disposable sample (owner consent confirmed):
 
 ## Current go/no-go items
 
-- Host and emulator verification for the current source revision must pass.
-- Physical short-capture smoke checks and source-preservation checks remain pending. The recent physical test setup cleared the installed app's private data; see `PHYSICAL_BETA_ACCEPTANCE.md`. Do not run instrumentation against a tester's daily-use installation.
+- Host verification for the current source revision passed: 195 JVM tests, debug and AndroidTest APK assembly, lint with zero errors. Current-revision emulator instrumentation did not run because the disposable API36 AVD never registered with ADB; physical short-capture, audio, media-export and source-preservation checks remain pending.
+- See [BETA_CANDIDATE.md](BETA_CANDIDATE.md) for the debug APK hash, provenance and release gates. Do not distribute it until device acceptance and artifact review are complete. Do not run instrumentation against a tester's daily-use installation.
 - The closed test group, contact method, and consent to receive the APK have not been supplied. No invite or external distribution has been sent.
