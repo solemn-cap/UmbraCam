@@ -1,5 +1,16 @@
 # Samsung beta acceptance — 2026-11-02
 
+## Physical UI follow-up — 2026-11-05
+
+Targeted only ADB serial `R5CT718YA8M` (Samsung SM-S9080, Android 16/API36). ADB initially required a server restart, then reported this device as `device`. Before installation, `com.umbracam.app` and both `/data/user/0/com.umbracam.app` and `/data/data/com.umbracam.app` were absent. Installed the debug APK and its AndroidTest APK with `adb install -r`; no prior UmbraCam sandbox was present to replace. No capture or audio test was run.
+
+Exact instrumentation commands, both via `adb -s R5CT718YA8M shell am instrument -w -r` and runner `com.umbracam.app.test/androidx.test.runner.AndroidJUnitRunner`:
+
+- `-e class com.umbracam.app.NavigationTest#proDiscoveryShowsHonestAccessAndNoCheckout`: **1 passed**, 2.474s.
+- `-e class com.umbracam.app.NavigationTest`: **7 passed**, 0 failed, 13.836s. Covered Pro discovery, SOS explanation, settings, navigation/back, activity recreation and the support screen.
+
+ThermalService was already status 2 before testing (AP 45.5°C, battery 39.9°C, skin 40.1°C, USB 39.0°C). After the first test it remained status 2 (AP 46.5°C, battery 40.4°C, skin 39.7°C). After the seven-test navigation run it reached status 3 (AP 61.1°C, battery 41.0°C, skin 42.7°C, USB 40.9°C). After a 30-second idle interval it was still status 3, with AP 48.1°C, battery 41.5°C, skin 41.3°C and USB 41.4°C. Testing stopped at that point. The final foreground was WhatsApp; no WhatsApp content was inspected or changed. `dumpsys activity services` showed no UmbraCam service. No settings were changed, no camera/microphone capture started, and no claim is made about completed-media preservation because no file hash inventory was taken. Camera, microphone, interruptions, export, storage, encryption and sustained/thermal acceptance remain pending.
+
 ## Follow-up physical attempt — 2026-11-02
 
 The user made the phone available for further acceptance. Connected explicitly to `R5CT718YA8M` (Samsung SM-S9080, Android 16/API36); no other device was targeted. The app data was not cleared. At the start, Android ThermalService reported status 1, battery 36.6°C, skin 36.6°C, and AP 40.4°C. The app `no_backup` tree contained 116 files. A swipe dismissed the lock screen without a credential; no settings or timeout values were changed.
